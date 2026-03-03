@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_calender/models/todo.dart';
+import 'package:flutter_calender/models/todo_adapter.dart';
 import 'package:flutter_calender/providers/calendar_provider.dart';
 import 'package:flutter_calender/providers/todo_provider.dart';
 import 'package:flutter_calender/screens/calendar_screen.dart';
@@ -10,20 +12,37 @@ import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Hive 초기화
+  await Hive.initFlutter();
+  
+  // Todo TypeAdapter 등록
+  Hive.registerAdapter(TodoAdapter());
+  
   // 한국어 로케일 데이터 초기화
   await initializeDateFormatting('ko_KR', null);
-  runApp(const MyApp());
+  
+  // TodoProvider 생성 및 초기화
+  final todoProvider = TodoProvider();
+  await todoProvider.initialize();
+  
+  runApp(MyApp(todoProvider: todoProvider));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final TodoProvider todoProvider;
+
+  const MyApp({
+    super.key,
+    required this.todoProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => CalendarProvider()),
-        ChangeNotifierProvider(create: (_) => TodoProvider()),
+        ChangeNotifierProvider.value(value: todoProvider),
       ],
       child: MaterialApp(
         title: 'Flutter 캘린더',

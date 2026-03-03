@@ -46,6 +46,10 @@ dependencies:
   # flutter_localizations 가 SDK 에서 고정하는 버전에 맞춰 준다 (현재 0.20.2)
   intl: ^0.20.2
   klc: ^0.1.0
+  
+  # 로컬 저장소 (Hive)
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
 
 dev_dependencies:
   flutter_test:
