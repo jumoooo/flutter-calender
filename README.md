@@ -5,10 +5,11 @@ Flutter를 학습하며 만든 캘린더 및 할일 관리 앱입니다. Provide
 ## 📱 주요 기능
 
 - **월별 캘린더**: 한국어 형식으로 날짜 표시 (양력/음력)
-- **할일 관리**: 추가, 수정, 삭제, 완료 처리
+- **할일 관리**: 추가, 수정, 삭제, 완료 처리 (Hive 로컬 DB 영속화)
 - **드래그 앤 드롭**: 할일을 드래그하여 날짜 변경
 - **우선순위**: 5단계 우선순위 설정 (매우 낮음 ~ 매우 높음)
 - **반응형 디자인**: 모바일과 웹 모두 지원 (웹에서는 최대 폭 제한)
+- **데이터 영속화**: 앱 재시작 후에도 할일 유지 (Hive NoSQL DB)
 
 ## 🛠️ 사용 기술
 
@@ -125,6 +126,69 @@ final updated = todo.copyWith(completed: true);
 
 이 프로젝트에서는 `Todo` 모델 하나이기 때문에 `copyWith`를 직접 작성하는 것이 더 용이 했습니다.
 필드가 10개 이상으로 늘어나면 `freezed` 사용해볼 예정입니다.
+
+---
+
+## ⚡ 성능 최적화 적용 사례
+
+코드 내에 실제로 적용된 성능 최적화 내역입니다.
+
+| 기법 | 적용 위치 | 효과 |
+|---|---|---|
+| `ListView.builder` | `calendar_widget.dart`, `todo_dialog.dart` | 화면에 보이는 항목만 렌더링 |
+| `ValueKey` (년-월) | `GridView.builder` 캘린더 그리드 | 월 전환 시 불필요한 전체 리빌드 방지 |
+| `const` 위젯 | 전체 위젯 트리 140+ 곳 | 변경 없는 위젯은 재빌드 스킵 |
+| `Consumer` 범위 최소화 | 캘린더/할일 구독 영역 분리 | 관련 없는 위젯의 리빌드 차단 |
+| `NeverScrollableScrollPhysics` | 달력 `GridView` | 스크롤 이벤트 처리 비용 제거 |
+
+> `RepaintBoundary`는 현재 미적용. 복잡한 커스텀 페인팅이 추가될 경우 도입 예정.
+
+---
+
+## 🧪 테스트
+
+서비스 품질 확보를 위해 3개 계층의 테스트를 작성했습니다.
+
+```
+test/
+├── widget_test.dart                     # 기본 UI 렌더링
+├── models/
+│   └── todo_test.dart                   # Todo 모델 직렬화/역직렬화
+└── providers/
+    ├── calendar_provider_test.dart      # 날짜 선택·월 이동 로직
+    ├── todo_provider_test.dart          # 할일 CRUD 메모리 테스트
+    └── todo_provider_hive_test.dart     # Hive 영속화 통합 테스트
+```
+
+**커버리지 영역:**
+- Model: `Todo.toJson()` / `fromJson()`, `copyWith()`, 이전 버전 호환 파싱
+- Provider: 날짜 선택, 월 이동, 할일 추가/수정/삭제/완료 토글
+- 영속화: 앱 재시작 후 데이터 유지 여부 (Hive Box 재오픈 시뮬레이션)
+
+```bash
+flutter test              # 전체 테스트 실행
+flutter test --coverage   # 커버리지 측정
+```
+
+---
+
+## 🔭 확장 가능성
+
+현재는 로컬 단독 앱이지만, 처음부터 확장을 고려한 구조로 설계했습니다.
+
+**서버 연동 확장 시나리오:**
+
+```
+현재 구조                   →   서버 연동 확장 시
+TodoProvider (Hive)             TodoRepository (인터페이스)
+                                    ├── LocalTodoRepository (Hive, 현재)
+                                    └── RemoteTodoRepository (REST API)
+```
+
+- `TodoProvider`는 데이터 접근 방식을 직접 알지 않고 Repository를 통해 동작하도록 분리 가능
+- `Todo` 모델은 이미 `toJson()` / `fromJson()` 구현 → REST API 응답 파싱 준비 완료
+- `CalendarProvider`는 UI 상태만 관리하므로 서버 연동 영향 없음
+- 인증(Auth) Provider 추가 시 `MultiProvider` 등록만으로 확장 가능
 
 ---
 
