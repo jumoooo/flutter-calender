@@ -95,14 +95,6 @@ flutter pub get
 flutter run
 ```
 
-## 📝 향후 개선 사항
-
-- [ ] 데이터 영속성 (SharedPreferences 또는 Hive)
-- [ ] 할일 검색 기능
-- [ ] 할일 카테고리/태그 기능
-- [ ] 다크 모드 지원
-- [ ] 알림 기능
-
 ## 📚 참고 자료
 
 - [Flutter 공식 문서](https://flutter.dev/docs)
