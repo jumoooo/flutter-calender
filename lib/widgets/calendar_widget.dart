@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_calender/constants/priority_colors.dart';
 import 'package:flutter_calender/models/todo.dart';
 import 'package:flutter_calender/providers/calendar_provider.dart';
+import 'package:flutter_calender/providers/category_provider.dart';
 import 'package:flutter_calender/providers/todo_provider.dart';
 import 'package:flutter_calender/utils/date_utils.dart' as korean_date;
 import 'package:flutter_calender/widgets/calendar_date_cell.dart';
-import 'package:flutter_calender/widgets/todo_dialog.dart';
+import 'package:flutter_calender/widgets/todo_detail_dialog.dart';
+import 'package:flutter_calender/widgets/todo_meta_tags.dart';
 import 'package:provider/provider.dart';
 
 /// 화면 표시 모드
@@ -479,117 +482,169 @@ class _CalendarWidgetState extends State<CalendarWidget>
   }) {
     final isScheduleOnly = _viewMode == _ViewMode.scheduleOnly;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 드래그 가능 표시 (회색 작은 가로선)
-        Center(
-          child: Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(
-              color: Colors.grey[400],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ),
-        Text(
-          '선택된 날짜 일정',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Colors.grey[700],
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        // 일정만 모드가 아닐 때만 날짜/요일/음력 표시
-        if (!isScheduleOnly) ...[
-          const SizedBox(height: 4),
-          // 예: "3.화 음력 1.15"
-          // 요일 확인 (일요일 = 0, 토요일 = 6)
-          Builder(
-            builder: (context) {
-              final weekday = date.weekday % 7;
-              final isSunday = weekday == 0;
-              final isSaturday = weekday == 6;
-
-              return RichText(
-                text: TextSpan(
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  children: [
-                    // 일요일은 빨간색, 토요일은 파란색으로 표시
-                    TextSpan(
-                      text: '${date.day}.$weekdayLabel ',
-                      style: TextStyle(
-                        color: isSunday
-                            ? Colors.red
-                            : isSaturday
-                            ? Colors.blue
-                            : null,
-                      ),
-                    ),
-                    TextSpan(
-                      text: lunarDescription,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.grey[500]),
-                    ),
-                  ],
+    return Consumer<TodoProvider>(
+      builder: (context, todoProvider, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 드래그 가능 표시 (회색 작은 가로선)
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-              );
-            },
-          ),
-        ],
-
-        // (이전) 하단 우측에 있던 작은 '오늘' 버튼은
-        // 화면 중간 하단 플로팅 버튼으로 이동했기 때문에 제거
-        const SizedBox(height: 8),
-        if (todos.isEmpty)
-          Expanded(
-            child: Center(
-              child: Text(
-                '등록된 일정이 없습니다.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
               ),
             ),
-          )
-        else
-          Expanded(
-            child: ListView.builder(
-              itemCount: todos.length,
-              itemBuilder: (context, index) {
-                final todo = todos[index];
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 0,
-                    vertical: 4,
+            // 헤더 행: 날짜 정보 + 정렬/필터 컨트롤
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '선택된 날짜 일정',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      // 일정만 모드가 아닐 때만 날짜/요일/음력 표시
+                      if (!isScheduleOnly) ...[
+                        const SizedBox(height: 4),
+                        Builder(
+                          builder: (context) {
+                            final weekday = date.weekday % 7;
+                            final isSunday = weekday == 0;
+                            final isSaturday = weekday == 6;
+
+                            return RichText(
+                              text: TextSpan(
+                                style: Theme.of(context).textTheme.bodyMedium,
+                                children: [
+                                  TextSpan(
+                                    text: '${date.day}.$weekdayLabel ',
+                                    style: TextStyle(
+                                      color: isSunday
+                                          ? Colors.red
+                                          : isSaturday
+                                          ? Colors.blue
+                                          : null,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: lunarDescription,
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ],
                   ),
-                  leading: _priorityIcon(todo.priority),
-                  title: Text(
-                    todo.title,
+                ),
+                // ── 정렬 + 필터 컨트롤 ──────────────────────────────────────
+                _SortFilterButtons(todoProvider: todoProvider),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+            if (todos.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    '등록된 일정이 없습니다.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  subtitle: Text(
-                    korean_date.KoreanDateUtils.formatKoreanDate(todo.date),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-                  ),
-                  onTap: () {
-                    // 하단 할일 클릭 시 팝업(다이얼로그) 표시
-                    showDialog(
-                      context: context,
-                      builder: (context) => TodoDialog(date: date),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
+                  itemCount: todos.length,
+                  itemBuilder: (context, index) {
+                    final todo = todos[index];
+                    return Consumer<CategoryProvider>(
+                      builder: (context, categoryProvider, _) {
+                        final category =
+                            categoryProvider.getById(todo.categoryId);
+                        return InkWell(
+                          onTap: () => showTodoDetailDialog(context, todo),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 6,
+                              horizontal: 2,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                _priorityIcon(todo.priority),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        todo.title,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w500,
+                                              decoration: todo.completed
+                                                  ? TextDecoration.lineThrough
+                                                  : null,
+                                              color: todo.completed
+                                                  ? Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant
+                                                  : null,
+                                            ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      // 카테고리/시간/기한 메타 태그
+                                      if (category != null ||
+                                          todo.todoTime != null ||
+                                          todo.dueDate != null) ...[
+                                        const SizedBox(height: 3),
+                                        TodoMetaTagsRow(
+                                          todo: todo,
+                                          category: category,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                if (todo.completed)
+                                  Icon(
+                                    Icons.check_circle_rounded,
+                                    size: 16,
+                                    color: Colors.green[400],
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
-          ),
-      ],
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -620,25 +675,67 @@ class _CalendarWidgetState extends State<CalendarWidget>
                   IconButton(
                     icon: const Icon(Icons.chevron_left),
                     onPressed: () {
-                      // 이전 달 버튼 클릭 시에도 스와이프와 동일한 애니메이션 적용
-                      _animateMonthChange(toNext: false);
+                      if (_viewMode == _ViewMode.scheduleOnly) {
+                        // 일정만 모드: 1일 이전으로 이동
+                        calendarProvider.goToPreviousDay();
+                      } else {
+                        // 기본/달력만 모드: 이전 달로 이동 (애니메이션 포함)
+                        _animateMonthChange(toNext: false);
+                      }
                     },
                   ),
-                  Text(
-                    _viewMode == _ViewMode.scheduleOnly
-                        ? // 일정만 모드: "월. 일. 요일" 형식
-                          '${selectedDate.month}.${selectedDate.day}.${korean_date.KoreanDateUtils.getKoreanWeekday(selectedDate)}'
-                        : // 기본 모드: "년 월" 형식
+                  Builder(
+                    builder: (context) {
+                      if (_viewMode != _ViewMode.scheduleOnly) {
+                        // 기본/달력만 모드: "년 월" 형식
+                        return Text(
                           calendarProvider.currentMonthFormatted,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        );
+                      }
+                      // 일정만 모드: "월.일.요일" — 요일에 색상 적용
+                      final wd = selectedDate.weekday % 7;
+                      final isSun = wd == 0;
+                      final isSat = wd == 6;
+                      final weekdayLabel =
+                          korean_date.KoreanDateUtils.getKoreanWeekday(
+                            selectedDate,
+                          );
+                      return RichText(
+                        text: TextSpan(
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          children: [
+                            TextSpan(
+                              text:
+                                  '${selectedDate.month}.${selectedDate.day}.',
+                            ),
+                            TextSpan(
+                              text: weekdayLabel,
+                              style: TextStyle(
+                                color: isSun
+                                    ? Colors.red
+                                    : isSat
+                                        ? Colors.blue
+                                        : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                   IconButton(
                     icon: const Icon(Icons.chevron_right),
                     onPressed: () {
-                      // 다음 달 버튼 클릭 시에도 스와이프와 동일한 애니메이션 적용
-                      _animateMonthChange(toNext: true);
+                      if (_viewMode == _ViewMode.scheduleOnly) {
+                        // 일정만 모드: 1일 다음으로 이동
+                        calendarProvider.goToNextDay();
+                      } else {
+                        // 기본/달력만 모드: 다음 달로 이동 (애니메이션 포함)
+                        _animateMonthChange(toNext: true);
+                      }
                     },
                   ),
                 ],
@@ -665,7 +762,7 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                         ? Colors.red
                                         : day == '토'
                                         ? Colors.blue
-                                        : Colors.black,
+                                        : Theme.of(context).colorScheme.onSurface,
                                   ),
                             ),
                           ),
@@ -944,12 +1041,11 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                               16,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.white,
+                                              color: Theme.of(context).colorScheme.surface,
                                               boxShadow: [
                                                 // 달력을 덮는 느낌을 위한 그림자
                                                 BoxShadow(
-                                                  color: Colors.black
-                                                      .withOpacity(0.1),
+                                                  color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
                                                   blurRadius: 8,
                                                   offset: const Offset(0, -2),
                                                 ),
@@ -1019,6 +1115,166 @@ class _CalendarWidgetState extends State<CalendarWidget>
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 정렬/완료 필터 버튼 위젯
+// ─────────────────────────────────────────────────────────────────────────────
+class _SortFilterButtons extends StatelessWidget {
+  final TodoProvider todoProvider;
+
+  const _SortFilterButtons({required this.todoProvider});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 완료 항목 숨기기 토글
+        Tooltip(
+          message: todoProvider.hideCompleted ? '완료 항목 표시' : '완료 항목 숨기기',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => todoProvider.toggleHideCompleted(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: Icon(
+                todoProvider.hideCompleted
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                size: 20,
+                color: todoProvider.hideCompleted
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+        // 정렬 버튼
+        Tooltip(
+          message: '정렬 방식 변경',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => _showSortMenu(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.sort,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    _sortLabel(todoProvider.sortType),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 현재 정렬 방식 짧은 라벨
+  String _sortLabel(TodoSortType sortType) {
+    switch (sortType) {
+      case TodoSortType.byPriority:
+        return '우선순위';
+      case TodoSortType.byDueDate:
+        return '기한순';
+      case TodoSortType.byCreation:
+        return '등록순';
+      case TodoSortType.byTitle:
+        return '이름순';
+    }
+  }
+
+  /// 정렬 방식 선택 메뉴
+  void _showSortMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                '정렬 방식',
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ...TodoSortType.values.map((sortType) {
+              final isSelected = todoProvider.sortType == sortType;
+              return ListTile(
+                leading: Icon(
+                  _sortIcon(sortType),
+                  color: isSelected
+                      ? Theme.of(ctx).colorScheme.primary
+                      : null,
+                ),
+                title: Text(
+                  _sortLabelFull(sortType),
+                  style: TextStyle(
+                    color: isSelected
+                        ? Theme.of(ctx).colorScheme.primary
+                        : null,
+                    fontWeight: isSelected ? FontWeight.bold : null,
+                  ),
+                ),
+                trailing: isSelected
+                    ? Icon(Icons.check,
+                        color: Theme.of(ctx).colorScheme.primary)
+                    : null,
+                onTap: () {
+                  todoProvider.setSortType(sortType);
+                  Navigator.of(ctx).pop();
+                },
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 정렬 방식 아이콘
+  IconData _sortIcon(TodoSortType sortType) {
+    switch (sortType) {
+      case TodoSortType.byPriority:
+        return Icons.priority_high;
+      case TodoSortType.byDueDate:
+        return Icons.flag_outlined;
+      case TodoSortType.byCreation:
+        return Icons.access_time;
+      case TodoSortType.byTitle:
+        return Icons.sort_by_alpha;
+    }
+  }
+
+  /// 정렬 방식 전체 라벨
+  String _sortLabelFull(TodoSortType sortType) {
+    switch (sortType) {
+      case TodoSortType.byPriority:
+        return '우선순위 높은 순';
+      case TodoSortType.byDueDate:
+        return '기한 가까운 순';
+      case TodoSortType.byCreation:
+        return '등록 순서';
+      case TodoSortType.byTitle:
+        return '이름 가나다 순';
+    }
+  }
+}
+
 /// 캘린더/일정 전환 시 보여줄 간단한 스켈레톤 위젯
 class _CalendarSkeleton extends StatelessWidget {
   const _CalendarSkeleton();
@@ -1043,7 +1299,7 @@ class _CalendarSkeleton extends StatelessWidget {
                 return Container(
                   margin: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                 );
@@ -1057,8 +1313,12 @@ class _CalendarSkeleton extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
-              border: Border(top: BorderSide(color: Colors.grey[200]!)),
+              color: Theme.of(context).colorScheme.surface,
+              border: Border(
+                top: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1067,7 +1327,7 @@ class _CalendarSkeleton extends StatelessWidget {
                   width: 100,
                   height: 12,
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -1077,13 +1337,14 @@ class _CalendarSkeleton extends StatelessWidget {
                     itemCount: 4,
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
+                      final skeletonColor = Theme.of(context).colorScheme.surfaceContainerHighest;
                       return Row(
                         children: [
                           Container(
                             width: 24,
                             height: 24,
                             decoration: BoxDecoration(
-                              color: Colors.grey[200],
+                              color: skeletonColor,
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
@@ -1095,7 +1356,7 @@ class _CalendarSkeleton extends StatelessWidget {
                                 Container(
                                   height: 10,
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[200],
+                                    color: skeletonColor,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                 ),
@@ -1104,7 +1365,7 @@ class _CalendarSkeleton extends StatelessWidget {
                                   width: 120,
                                   height: 8,
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[200],
+                                    color: skeletonColor,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                 ),
@@ -1142,54 +1403,25 @@ int _priorityRank(TodoPriority priority) {
 }
 
 /// 우선순위별 대표 색상
+/// 
+/// 중앙 상수 파일에서 색상을 가져옵니다.
 Color _priorityColor(TodoPriority priority) {
-  switch (priority) {
-    case TodoPriority.veryHigh:
-      // 파스텔 레드
-      return const Color(0xFFFF8A80); // red lighten
-    case TodoPriority.high:
-      // 파스텔 오렌지
-      return const Color(0xFFFFB74D);
-    case TodoPriority.normal:
-      // 파스텔 옐로우
-      return const Color(0xFFFFF176);
-    case TodoPriority.low:
-      // 파스텔 그린
-      return const Color(0xFFA5D6A7);
-    case TodoPriority.veryLow:
-      // 파스텔 블루그레이
-      return const Color(0xFFB0BEC5);
-  }
-}
-
-/// 우선순위 짧은 한글 라벨 (칩 안에 표시)
-String _priorityLabelShort(TodoPriority priority) {
-  switch (priority) {
-    case TodoPriority.veryHigh:
-      return '최상';
-    case TodoPriority.high:
-      return '상';
-    case TodoPriority.normal:
-      return '중';
-    case TodoPriority.low:
-      return '하';
-    case TodoPriority.veryLow:
-      return '최하';
-  }
+  return PriorityColors.getColor(priority);
 }
 
 /// 우선순위 표시용 칩 위젯
 Widget _priorityIcon(TodoPriority priority) {
   final color = _priorityColor(priority);
-  final label = _priorityLabelShort(priority);
+  // 중앙화된 PriorityColors.label() 사용 (중복 switch 제거)
+  final label = PriorityColors.label(priority);
 
   // 캘린더 하단 리스트에서 사용할 작고 둥근 칩
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.12),
+      color: color.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: color.withOpacity(0.7), width: 0.8),
+      border: Border.all(color: color.withValues(alpha: 0.7), width: 0.8),
     ),
     child: Text(
       label,

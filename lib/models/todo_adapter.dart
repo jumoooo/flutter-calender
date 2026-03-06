@@ -1,24 +1,57 @@
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:flutter_calender/models/todo.dart';
 
-/// Todo 모델을 위한 Hive TypeAdapter
-/// 
-/// Hive에서 Todo 객체를 저장하고 불러오기 위한 어댑터입니다.
+/// Todo 모델을 위한 Hive TypeAdapter (v2: 하위 호환)
+///
+/// 기존 데이터(v1: categoryId/dueDate/time 없음)를 그대로 읽을 수 있습니다.
+/// 새 필드는 바이너리 끝에 추가되며, availableBytes로 존재 여부를 판별합니다.
 class TodoAdapter extends TypeAdapter<Todo> {
   @override
-  final int typeId = 0; // 고유한 타입 ID (0-223 사이의 값)
+  final int typeId = 0;
 
   @override
   Todo read(BinaryReader reader) {
-    // 바이너리에서 읽어서 Todo 객체로 변환
+    // ── 기본 필드 (v1 이상 공통) ─────────────────────────────────────────
     final id = reader.readString();
     final title = reader.readString();
-    // nullable String 처리: null 여부를 먼저 읽고, null이 아니면 값을 읽음
+
+    // nullable String: hasDescription bool → 값 읽기
     final hasDescription = reader.readBool();
     final description = hasDescription ? reader.readString() : null;
+
     final dateMilliseconds = reader.readInt();
     final completed = reader.readBool();
     final priorityIndex = reader.readByte();
+
+    // ── 확장 필드 (v2 이상: availableBytes 체크) ──────────────────────────
+
+    // categoryId (String?)
+    String? categoryId;
+    if (reader.availableBytes > 0) {
+      final hasCategoryId = reader.readBool();
+      if (hasCategoryId) categoryId = reader.readString();
+    }
+
+    // dueDate (DateTime?)
+    DateTime? dueDate;
+    if (reader.availableBytes > 0) {
+      final hasDueDate = reader.readBool();
+      if (hasDueDate) {
+        dueDate = DateTime.fromMillisecondsSinceEpoch(reader.readInt());
+      }
+    }
+
+    // todoTime (TimeOfDay? → hour byte + minute byte)
+    TimeOfDay? todoTime;
+    if (reader.availableBytes > 0) {
+      final hasTime = reader.readBool();
+      if (hasTime) {
+        final hour = reader.readByte();
+        final minute = reader.readByte();
+        todoTime = TimeOfDay(hour: hour, minute: minute);
+      }
+    }
 
     return Todo(
       id: id,
@@ -26,16 +59,18 @@ class TodoAdapter extends TypeAdapter<Todo> {
       description: description,
       date: DateTime.fromMillisecondsSinceEpoch(dateMilliseconds),
       completed: completed,
-      priority: TodoPriority.values[priorityIndex],
+      priority: TodoPriority.values[priorityIndex.clamp(0, TodoPriority.values.length - 1)],
+      categoryId: categoryId,
+      dueDate: dueDate,
+      todoTime: todoTime,
     );
   }
 
   @override
   void write(BinaryWriter writer, Todo obj) {
-    // Todo 객체를 바이너리로 변환하여 저장
+    // ── 기본 필드 ──────────────────────────────────────────────────────────
     writer.writeString(obj.id);
     writer.writeString(obj.title);
-    // nullable String 처리: null 여부를 먼저 쓰고, null이 아니면 값을 씀
     writer.writeBool(obj.description != null);
     if (obj.description != null) {
       writer.writeString(obj.description!);
@@ -43,5 +78,25 @@ class TodoAdapter extends TypeAdapter<Todo> {
     writer.writeInt(obj.date.millisecondsSinceEpoch);
     writer.writeBool(obj.completed);
     writer.writeByte(obj.priority.index);
+
+    // ── 확장 필드 (v2) ────────────────────────────────────────────────────
+    // categoryId
+    writer.writeBool(obj.categoryId != null);
+    if (obj.categoryId != null) {
+      writer.writeString(obj.categoryId!);
+    }
+
+    // dueDate
+    writer.writeBool(obj.dueDate != null);
+    if (obj.dueDate != null) {
+      writer.writeInt(obj.dueDate!.millisecondsSinceEpoch);
+    }
+
+    // todoTime
+    writer.writeBool(obj.todoTime != null);
+    if (obj.todoTime != null) {
+      writer.writeByte(obj.todoTime!.hour);
+      writer.writeByte(obj.todoTime!.minute);
+    }
   }
 }

@@ -1,13 +1,45 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
 import 'package:flutter_calender/models/todo.dart';
+import 'package:flutter_calender/models/todo_adapter.dart';
 import 'package:flutter_calender/providers/todo_provider.dart';
 
 void main() {
   group('TodoProvider 테스트', () {
     late TodoProvider provider;
+    late Directory tempDir;
 
-    setUp(() {
+    setUpAll(() async {
+      // 테스트용 Hive 초기화 (임시 디렉토리 사용)
+      tempDir = Directory.systemTemp.createTempSync('hive_test_provider_');
+      Hive.init(tempDir.path);
+      Hive.registerAdapter(TodoAdapter());
+    });
+
+    setUp(() async {
       provider = TodoProvider();
+      await provider.initialize();
+      await provider.clearAll();
+    });
+
+    tearDown(() async {
+      await provider.clearAll();
+    });
+
+    tearDownAll(() async {
+      try {
+        await Hive.close();
+      } catch (e) {
+        // 무시
+      }
+      try {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      } catch (e) {
+        // 무시
+      }
     });
 
     test('할일 추가 테스트', () async {
@@ -127,6 +159,69 @@ void main() {
 
       // Then: 날짜가 변경되었는지 확인
       expect(provider.todos.first.date, newDate);
+    });
+
+    // ─── 날짜 인덱스 O(1) 조회 테스트 ─────────────────────────────────────
+    group('날짜 인덱스 성능 최적화 테스트', () {
+      test('getTodosByDate가 O(1)로 동작 — 추가 후 인덱스 즉시 반영', () async {
+        // Given: 여러 날짜에 걸친 할일
+        final date1 = DateTime(2026, 3, 1);
+        final date2 = DateTime(2026, 3, 2);
+
+        await provider.addTodo(Todo(id: 'a', title: '3월1일', date: date1));
+        await provider.addTodo(Todo(id: 'b', title: '3월1일B', date: date1));
+        await provider.addTodo(Todo(id: 'c', title: '3월2일', date: date2));
+
+        // Then: 각 날짜별로 정확히 반환
+        expect(provider.getTodosByDate(date1).length, 2);
+        expect(provider.getTodosByDate(date2).length, 1);
+        expect(provider.getTodosByDate(DateTime(2026, 3, 3)).length, 0);
+      });
+
+      test('삭제 후 인덱스에서도 제거됨', () async {
+        final date = DateTime(2026, 3, 10);
+        await provider.addTodo(Todo(id: '1', title: '할일', date: date));
+        expect(provider.getTodosByDate(date).length, 1);
+
+        await provider.deleteTodo('1');
+        expect(provider.getTodosByDate(date).length, 0);
+      });
+
+      test('날짜 변경(moveTodo) 후 인덱스 이동', () async {
+        final oldDate = DateTime(2026, 3, 5);
+        final newDate = DateTime(2026, 3, 15);
+
+        await provider.addTodo(Todo(id: '1', title: '할일', date: oldDate));
+        expect(provider.getTodosByDate(oldDate).length, 1);
+        expect(provider.getTodosByDate(newDate).length, 0);
+
+        await provider.moveTodo('1', newDate);
+
+        // 이전 날짜 인덱스에서 제거, 새 날짜 인덱스에 추가
+        expect(provider.getTodosByDate(oldDate).length, 0);
+        expect(provider.getTodosByDate(newDate).length, 1);
+      });
+
+      test('완료 토글 후 인덱스 유지', () async {
+        final date = DateTime(2026, 3, 7);
+        await provider.addTodo(Todo(id: '1', title: '할일', date: date, completed: false));
+        await provider.toggleTodo('1');
+
+        // 날짜는 변경되지 않으므로 인덱스 유지
+        final result = provider.getTodosByDate(date);
+        expect(result.length, 1);
+        expect(result.first.completed, true);
+      });
+
+      test('clearAll 후 인덱스 초기화', () async {
+        final date = DateTime(2026, 3, 20);
+        await provider.addTodo(Todo(id: '1', title: '할일', date: date));
+        expect(provider.getTodosByDate(date).length, 1);
+
+        await provider.clearAll();
+        expect(provider.getTodosByDate(date).length, 0);
+        expect(provider.todos.length, 0);
+      });
     });
   });
 }

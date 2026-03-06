@@ -1,19 +1,97 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_calender/providers/calendar_provider.dart';
+import 'package:flutter_calender/providers/todo_provider.dart';
+import 'package:flutter_calender/screens/category_screen.dart';
+import 'package:flutter_calender/screens/search_result_screen.dart';
+import 'package:flutter_calender/screens/settings_screen.dart';
 import 'package:flutter_calender/utils/date_utils.dart' as korean_date;
 import 'package:flutter_calender/widgets/calendar_widget.dart';
+import 'package:flutter_calender/widgets/todo_input_dialog.dart';
 import 'package:provider/provider.dart';
 
 /// 캘린더 메인 화면
 ///
 /// 캘린더와 할일을 관리하는 메인 화면입니다.
-class CalendarScreen extends StatelessWidget {
+class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
+
+  @override
+  State<CalendarScreen> createState() => _CalendarScreenState();
+}
+
+class _CalendarScreenState extends State<CalendarScreen> {
+  StreamSubscription? _errorSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // TodoProvider의 에러 스트림 구독
+    final todoProvider = Provider.of<TodoProvider>(context, listen: false);
+    _errorSubscription = todoProvider.errorStream.listen((error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.message),
+            backgroundColor: Colors.red[600],
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: '확인',
+              textColor: Colors.white,
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _errorSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('캘린더')),
+      appBar: AppBar(
+        title: const Text('캘린더'),
+        actions: [
+          // 검색 화면으로 이동
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: '검색',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SearchResultScreen()),
+              );
+            },
+          ),
+          // 카테고리 관리 화면으로 이동
+          IconButton(
+            icon: const Icon(Icons.label_outline),
+            tooltip: '카테고리 관리',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CategoryScreen()),
+              );
+            },
+          ),
+          // 설정 화면으로 이동
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: '설정',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
+        ],
+      ),
       body: Stack(
         children: const [
           // 메인 캘린더 영역
@@ -29,12 +107,18 @@ class CalendarScreen extends StatelessWidget {
             context,
             listen: false,
           );
-          Navigator.of(
+          // 할일 추가 — 다이얼로그로 표시
+          showTodoInputDialog(
             context,
-          ).pushNamed('/todo-input', arguments: calendarProvider.selectedDate);
+            initialDate: calendarProvider.selectedDate,
+          );
         },
         tooltip: '할일 추가',
-        child: const Icon(Icons.add),
+        // 다크 모드에서도 잘 보이도록 colorScheme 기반 색상 명시
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        elevation: 4,
+        child: const Icon(Icons.add, size: 28),
       ),
     );
   }
@@ -66,12 +150,12 @@ class _TodayFloatingButton extends StatelessWidget {
           child: Center(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   // 살짝 떠 있는 느낌을 주기 위한 그림자
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.18),
+                    color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.18),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -86,7 +170,7 @@ class _TodayFloatingButton extends StatelessWidget {
                     horizontal: 16,
                     vertical: 10,
                   ),
-                  foregroundColor: Colors.black87,
+                  foregroundColor: Theme.of(context).colorScheme.onSurface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24),
                   ),

@@ -6,17 +6,37 @@ class KoreanDateUtils {
   /// 한국 로케일 설정
   static const String koreanLocale = 'ko_KR';
 
+  /// 음력 변환 결과 캐시 ('yyyy-M-d' → '음력 M.d')
+  /// 동일 날짜의 반복 계산을 방지합니다 (최대 500개 항목 유지)
+  static final Map<String, String> _lunarCache = {};
+
+  /// DateFormat 인스턴스 캐시 (동일 포맷 문자열 반복 생성 방지)
+  static final Map<String, DateFormat> _formatCache = {};
+
+  /// DateFormat을 캐시에서 가져오거나 생성
+  static DateFormat _getFormat(String pattern) {
+    return _formatCache.putIfAbsent(pattern, () => DateFormat(pattern, koreanLocale));
+  }
+
   /// 한국 시간대
   static const String koreanTimeZone = 'Asia/Seoul';
 
   /// 날짜를 한국어 형식으로 포맷팅 (예: "2026년 3월 15일")
   static String formatKoreanDate(DateTime date) {
-    return DateFormat('yyyy년 M월 d일', koreanLocale).format(date);
+    return _getFormat('yyyy년 M월 d일').format(date);
+  }
+
+  /// 날짜를 요일 포함 한국어 형식으로 포맷팅 (예: "2026년 3월 15일 (일)")
+  ///
+  /// TodoDetailDialog, SearchResultScreen 등 날짜+요일이 함께 필요한 곳에 사용.
+  /// intl.DateFormat 직접 사용 대신 이 메서드를 통해 locale을 'ko_KR'로 통일합니다.
+  static String formatKoreanDateWithWeekday(DateTime date) {
+    return _getFormat('yyyy년 M월 d일 (E)').format(date);
   }
 
   /// 날짜를 한국어 형식으로 포맷팅 (예: "2026년 3월")
   static String formatKoreanMonth(DateTime date) {
-    return DateFormat('yyyy년 M월', koreanLocale).format(date);
+    return _getFormat('yyyy년 M월').format(date);
   }
 
   /// 요일을 한국어로 반환 (예: "월", "화", "수", "목", "금", "토", "일")
@@ -63,27 +83,37 @@ class KoreanDateUtils {
 
   /// 한국 음력 표기 (klc 패키지 / KARI 기준, 오프라인 동기 계산)
   ///
-  /// - 네트워크 없이 바로 계산되므로, 양력 텍스트와 동일한 속도로 표시됩니다.
-  /// - klc: https://pub.dev/documentation/klc/latest/ 에서 제공하는
-  ///   `setSolarDate`, `getLunarIsoFormat` 함수를 사용합니다.
+  /// - 네트워크 없이 바로 계산됩니다.
+  /// - 결과를 캐시하여 동일 날짜의 반복 계산을 방지합니다.
   /// - 예: 양력 2026-03-03 -> "음력 1.15"
   static String getLunarDescription(DateTime date) {
-    try {
-      // 1) 양력 날짜를 klc 에 설정 (연/월/일)
-      klc.setSolarDate(date.year, date.month, date.day);
+    final cacheKey = '${date.year}-${date.month}-${date.day}';
 
+    // ✅ 캐시에 있으면 즉시 반환
+    final cached = _lunarCache[cacheKey];
+    if (cached != null) return cached;
+
+    // ✅ 캐시 크기 제한 (500개 초과 시 가장 오래된 항목 제거)
+    if (_lunarCache.length >= 500) {
+      _lunarCache.remove(_lunarCache.keys.first);
+    }
+
+    try {
+      klc.setSolarDate(date.year, date.month, date.day);
       final iso = klc.getLunarIsoFormat();
       final datePart = iso.split(' ').first;
       final parts = datePart.split('-');
-      if (parts.length != 3) {
-        return '음력 ${date.month}.${date.day}';
-      }
 
-      final lunarMonth = int.tryParse(parts[1]) ?? date.month;
-      final lunarDay = int.tryParse(parts[2]) ?? date.day;
-      return '음력 $lunarMonth.$lunarDay';
+      final result = parts.length == 3
+          ? '음력 ${int.tryParse(parts[1]) ?? date.month}.${int.tryParse(parts[2]) ?? date.day}'
+          : '음력 ${date.month}.${date.day}';
+
+      _lunarCache[cacheKey] = result;
+      return result;
     } catch (_) {
-      return '음력 ${date.month}.${date.day}';
+      final fallback = '음력 ${date.month}.${date.day}';
+      _lunarCache[cacheKey] = fallback;
+      return fallback;
     }
   }
 }
