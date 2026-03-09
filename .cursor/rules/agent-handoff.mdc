@@ -1,0 +1,79 @@
+---
+alwaysApply: true
+description: "Agent Handoff - Planner → Dev Agent structured artifact and quality gate"
+---
+
+## Internal Instructions (English)
+
+- Purpose: Define a **stable, reusable handoff contract** between `planner` and dev agents (e.g., `featureImplementation`) for `feature_dev` requests, and enforce a basic **quality gate** so future chats and environments behave consistently.
+- Scope:
+  - Applies when orchestrator detects intent including `feature_dev`.
+  - Applies to handoffs from `planner` to any dev agent that implements feature changes.
+- Behavior:
+  - `planner` MUST produce a structured handoff artifact for `feature_dev` plans that follows the schema described in `planner.md` (Phase 5.5: Handoff Artifact Creation for `feature_dev`).
+  - Dev agents (e.g., `featureImplementation`) MUST:
+    - Read and respect the artifact (`plan_steps`, `impact_scope`, `acceptance_criteria`, `risks`, `scores`, `evaluation_notes`, `agent_plan`).
+    - Treat `acceptance_criteria` as implicit tests that should hold after implementation.
+  - Orchestrator SHOULD use a simple quality gate before dispatching to dev agents:
+    - REQUIRED fields:
+      - `intent` (must be `"feature_dev"`)
+      - `plan_steps` (non-empty)
+      - `impact_scope.files` (non-empty)
+      - `acceptance_criteria` (non-empty)
+      - `scores.overall` (numeric)
+    - If any REQUIRED field is missing or obviously invalid:
+      - Request `planner` to refine or regenerate the plan before proceeding.
+    - If `scores.overall` is below a conservative threshold (e.g., `70`):
+      - Orchestrator SHOULD either:
+        - Ask `planner` for a refined plan, **or**
+        - Inform the user that the plan is considered low-confidence and ask for confirmation before proceeding.
+
+## 사용자용 설명 (한글)
+
+# Agent Handoff 규칙 (planner → 개발 Agent)
+
+이 규칙은 `planner`가 만든 계획을 `featureImplementation` 같은 개발 Agent에게 넘길 때,
+**항상 같은 형태의 구조화된 산출물(계약 스키마)** 로 전달하고,  
+기본적인 **품질 게이트(필수 필드 + 점수 기준)** 를 적용하기 위한 규칙입니다.
+
+## 적용 대상
+
+- Orchestrator가 의도(Intent)에 `feature_dev`가 포함되었다고 판단한 경우
+- `planner` → `featureImplementation`(또는 다른 개발 Agent)로 작업을 넘길 때
+
+## 동작 방식
+
+1. **planner 산출물 형식**
+   - `planner`는 `feature_dev` 계획이 확정되면,
+   - `planner.md`에 정의된 스키마(Phase 5.5)에 따라 JSON 형태의 구조화된 산출물을 생성합니다.
+   - 이 산출물에는 최소한 아래 정보가 포함됩니다:
+     - `plan_steps`: 구현 단계별 작업 목록
+     - `impact_scope.files`: 수정 대상 파일 목록
+     - `impact_scope.state_management`: 상태관리 변경 범위
+     - `risks`: 예상 리스크 목록
+     - `acceptance_criteria`: 구현 후 만족해야 할 조건(테스트 관점)
+     - `scores`: 품질/효율/안정성 점수 및 종합 점수
+     - `evaluation_notes`: 점수에 대한 간단한 이유
+     - `agent_plan`: 이번 작업에 참여할 예상 Agent 목록과 각 Agent의 역할
+
+2. **개발 Agent의 역할 (예: featureImplementation)**
+   - 전달받은 산출물을 기반으로:
+     - `plan_steps`를 구현 체크리스트로 사용하고,
+     - `impact_scope.files` 안에서 변경을 집중적으로 수행하며,
+     - `acceptance_criteria`를 사실상의 테스트 목록으로 삼아 코드를 설계/검증합니다.
+     - `agent_plan`을 참고하여, 어떤 Agent가 어떤 단계에 관여할 예정인지 이해하고,  
+       작업 중간/마무리 응답에서 사용자에게 **“이번 작업에서 사용된 Agent 요약”** 을 보여줄 때 이 정보를 활용합니다.
+
+3. **Orchestrator 품질 게이트**
+   - Orchestrator는 dev Agent를 호출하기 전에:
+     - 필수 필드(`intent`, `plan_steps`, `impact_scope.files`, `acceptance_criteria`, `scores.overall`)가 채워져 있는지 확인합니다.
+     - `scores.overall`이 너무 낮을 경우(예: 70 미만),
+       - `planner`에게 계획 보강을 요청하거나,
+       - 사용자에게 “신뢰도가 낮은 계획”임을 안내하고 진행 여부를 물을 수 있습니다.
+
+## 기대 효과
+
+- **안정성**: 어떤 새 채팅/새 환경에서도 planner → dev Agent 간 전달 형식이 동일하여, 컨텍스트 휘발과 오해를 줄입니다.
+- **품질**: 점수와 수용 기준(acceptance_criteria)을 함께 사용해, 구현 결과의 일관성과 품질을 높입니다.
+- **확장성**: 추후 다른 개발 Agent를 추가해도, 동일한 핸드오프 스키마와 품질 게이트를 재사용할 수 있습니다.
+

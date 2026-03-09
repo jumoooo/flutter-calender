@@ -1,0 +1,82 @@
+---
+alwaysApply: true
+description: "Deep Discovery Agent - 프로젝트 구조 자동 분석 및 문서 최신화 규칙"
+globs: "*.dart,*.md"
+---
+
+## Internal Instructions (English)
+
+- Purpose: Automatically trigger `deepDiscoveryAgent` to keep project structure documentation up-to-date.
+- Scope: Applies to all Dart/Markdown files and new chat sessions.
+- Behavior:
+  - When orchestrator receives a request (especially in new chat sessions), check if project structure documentation needs updating.
+  - If no recent deep discovery report exists, or if the report is stale (older than 7 days or from different branch/project), automatically trigger `deepDiscoveryAgent` with `mode="baseline"` and `depth_level="standard"` before proceeding with other agents.
+  - For simple/local edits, skip automatic deep discovery to maintain efficiency.
+  - All deep discovery artifacts are stored under `.cursor/docs/deep-discovery/` for reuse by other agents.
+
+## 사용자용 설명 (한글)
+
+# Deep Discovery Agent 자동 실행 규칙
+
+이 규칙은 프로젝트 구조 문서를 자동으로 최신화하기 위한 규칙입니다.
+
+## 자동 실행 조건
+
+### 새 채팅 세션 또는 작업 시작 시
+
+다음 상황에서 `deepDiscoveryAgent`가 자동으로 실행됩니다:
+
+1. **새 채팅 세션 시작**
+   - 새로운 대화가 시작될 때 프로젝트 구조 문서가 없거나 오래된 경우
+   - 최근 7일 이내의 문서가 없는 경우
+   - 다른 브랜치/프로젝트 기준의 문서인 경우
+
+2. **복잡한 작업 요청**
+   - 프로젝트 전체 구조 파악이 필요한 작업
+   - 리팩토링, 구조 변경, 아키텍처 관련 작업
+   - 여러 디렉터리를 동시에 수정/분석하는 작업
+
+3. **프로젝트 구조 문서 부재**
+   - `.cursor/docs/deep-discovery/` 디렉토리에 최신 문서가 없는 경우
+
+### 자동 실행 제외 조건
+
+다음 상황에서는 효율을 위해 자동 실행을 건너뜁니다:
+
+- 단순 코드 수정 (한 파일 내의 작은 변경)
+- 명확히 로컬 작업인 경우
+- 최근 7일 이내의 최신 문서가 이미 존재하는 경우
+
+## 작동 방식
+
+1. **Orchestrator가 요청 분석**
+   - 사용자 요청을 받으면 먼저 프로젝트 구조 문서 상태 확인
+   - `.cursor/docs/deep-discovery/` 디렉토리에서 최신 문서 확인
+
+2. **자동 실행 판단**
+   - 문서가 없거나 오래된 경우 → `deepDiscoveryAgent` 자동 실행
+   - 문서가 최신인 경우 → 기존 문서 재사용
+
+3. **Deep Discovery 실행**
+   - `mode="baseline"`: 프로젝트 전체 기준 리포트 생성
+   - `depth_level="standard"`: 핵심 구조와 컴포넌트 분석
+   - 결과는 `.cursor/docs/deep-discovery/`에 JSON/Markdown 형식으로 저장
+
+4. **다른 Agent에게 컨텍스트 제공**
+   - 생성된 문서를 `planner`, `studyAgent` 등 다른 Agent들이 공통 컨텍스트로 사용
+   - 중복 스캔 방지 및 효율성 향상
+
+## 산출물 위치
+
+- **JSON 리포트**: `.cursor/docs/deep-discovery/deep-discovery_{ref}_{depth}_{mode}.json`
+- **Markdown 요약**: `.cursor/docs/deep-discovery/deep-discovery_{ref}_{depth}_{mode}.md`
+
+## 중요 사항
+
+- 모든 Agent는 생성된 문서를 공통 컨텍스트로 활용합니다
+- 문서는 자동으로 최신 상태를 유지합니다
+- 새 채팅 세션에서도 최신 프로젝트 구조를 바로 파악할 수 있습니다
+- 효율을 위해 단순 작업에서는 자동 실행을 건너뜁니다
+
+Agent 파일 참조: [deepDiscoveryAgent.md](mdc:.cursor/agents/deepDiscoveryAgent.md)
+Orchestrator 파일 참조: [orchestrator.md](mdc:.cursor/agents/orchestrator.md)

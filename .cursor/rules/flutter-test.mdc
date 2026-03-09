@@ -1,0 +1,315 @@
+---
+alwaysApply: true
+description: "Flutter 테스트 작성 가이드라인 및 재발 방지 체크리스트"
+globs: "test/**/*.dart"
+---
+
+## Internal Instructions (English)
+
+- Purpose: Prevent common Flutter testing pitfalls and enforce best practices for this project.
+- Scope: Applies to all test files under the `test/` directory.
+- Behavior: Before writing any test file, review and apply all rules in this checklist.
+
+### Rule 1 — Hive Initialization in Tests
+- NEVER use `Hive.initFlutter()` in test files.
+- ALWAYS use `Hive.init(tempDir.path)` with a temp directory in `setUpAll`.
+- ALWAYS close Hive and delete the temp directory in `tearDownAll` inside a try-catch.
+
+### Rule 2 — No `pumpAndSettle()` with AnimationControllers
+- NEVER call `tester.pumpAndSettle()` if the widget tree contains an `AnimationController` (e.g., `CalendarWidget`).
+- ALWAYS use fixed-duration `tester.pump(Duration(...))` instead.
+- If the widget contains animations that never stop, test at a simpler widget level (without the animated widget).
+
+### Rule 3 — Always `await` async methods
+- ALWAYS await `Future<void>` and `Future<T>` returning Provider/Service methods.
+- ALWAYS declare test bodies as `async`: `test('...', () async { ... })`.
+- ALWAYS declare widget test bodies as `async`: `testWidgets('...', (tester) async { ... })`.
+
+### Rule 4 — Handle constructor timers in tearDown
+- If a class constructor starts a `Future.delayed()` timer (e.g., `CalendarProvider._startInitialSkeleton()`), ALWAYS add a `tearDown` that awaits slightly longer than that timer.
+- Default: `await Future.delayed(const Duration(milliseconds: 300))` in tearDown.
+
+### Rule 5 — MediaQuery in widget tests
+- If `main.dart` or any widget uses `MediaQuery.of(context)` in a `builder`, wrap the test widget in an explicit `MediaQuery` widget.
+- Example: `MediaQuery(data: const MediaQueryData(size: Size(400, 800)), child: MyApp(...))`.
+
+### Rule 6 — Test file structure
+- Unit tests (Provider/Model): use `test()` + `group()` with `setUp`/`tearDown`.
+- Widget tests: use `testWidgets()` with `setUpAll`/`tearDownAll` for shared resources (Hive).
+- Each test must be independent: clear shared state in `setUp`/`tearDown`.
+
+---
+
+## 사용자용 설명 (한글)
+
+# Flutter 테스트 작성 가이드라인 🧪
+
+이 규칙은 테스트 작성 시 자주 발생했던 문제들을 방지하기 위한 체크리스트입니다.
+새 채팅에서 테스트를 작성할 때도 이 규칙을 기반으로 작성합니다.
+
+---
+
+## ⚠️ 절대 하지 말아야 할 것들 (과거 발생 오류 기반)
+
+### ❌ Rule 1: `Hive.initFlutter()` 테스트에서 사용 금지
+
+```dart
+// ❌ 잘못된 방법 → MissingPluginException 발생
+await Hive.initFlutter();
+```
+
+```dart
+// ✅ 올바른 방법
+setUpAll(() async {
+  // 임시 디렉토리에 Hive 초기화 (플랫폼 채널 불필요)
+  tempDir = Directory.systemTemp.createTempSync('hive_test_');
+  Hive.init(tempDir.path);
+  Hive.registerAdapter(TodoAdapter());
+});
+
+tearDownAll(() async {
+  try { await Hive.close(); } catch (e) {}
+  try {
+    if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+  } catch (e) {}
+});
+```
+
+**원인:** `Hive.initFlutter()`는 `path_provider` 플랫폼 채널을 사용하는데,
+순수 Dart 테스트 환경에서는 플랫폼 채널이 없어 `MissingPluginException`이 발생합니다.
+
+---
+
+### ❌ Rule 2: `AnimationController`가 있는 위젯에 `pumpAndSettle()` 사용 금지
+
+```dart
+// ❌ 잘못된 방법 → 10분 타임아웃까지 무한 대기
+await tester.pumpAndSettle();
+```
+
+```dart
+// ✅ 올바른 방법: 고정 시간만 대기
+await tester.pump();                                    // 첫 프레임
+await tester.pump(const Duration(milliseconds: 300));   // 초기화 대기
+await tester.pump();                                    // 추가 프레임
+await tester.pump();
+```
+
+**원인:** `AnimationController.addListener()`가 계속 `setState()`를 호출하면
+`pumpAndSettle()`이 "더 이상 변경 없음" 상태에 도달하지 못해 무한 대기합니다.
+
+> 💡 **핵심 판단 기준:** 위젯 트리에 `CalendarWidget`이 포함되면 `pumpAndSettle()` 사용 금지.
+
+---
+
+### ❌ Rule 3: `async` 메서드에 `await` 누락 금지
+
+```dart
+// ❌ 잘못된 방법 → 상태가 변경되기 전에 expect 실행
+test('날짜 선택 테스트', () {   // async 누락
+  provider.selectDate(date);   // await 누락
+  expect(provider.selectedDate, date); // 타이밍 문제 발생 가능
+});
+```
+
+```dart
+// ✅ 올바른 방법
+test('날짜 선택 테스트', () async {   // async 필수
+  await provider.selectDate(date);   // await 필수
+  expect(provider.selectedDate, date);
+});
+```
+
+**체크 방법:** Provider/Service의 메서드가 `Future<T>`를 반환하면 무조건 `await`.
+
+---
+
+### ❌ Rule 4: 생성자 타이머 미처리 금지
+
+```dart
+// 문제 있는 클래스 예시
+class CalendarProvider {
+  CalendarProvider() {
+    _startInitialSkeleton(); // 내부에서 Future.delayed(250ms) 실행
+  }
+}
+```
+
+```dart
+// ✅ tearDown에서 타이머 완료 대기
+tearDown(() async {
+  // CalendarProvider 생성자의 타이머(250ms) 완료 대기
+  await Future.delayed(const Duration(milliseconds: 300));
+});
+```
+
+**원인:** 테스트 종료 후에도 타이머가 실행되면 dangling timer로 다음 테스트에 영향을 줄 수 있습니다.
+
+---
+
+## ✅ 테스트 파일 템플릿
+
+### 위젯 테스트 (Hive + AnimationController 있는 경우)
+
+```dart
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
+import 'package:your_app/models/your_adapter.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
+void main() {
+  late Directory tempDir;
+
+  setUpAll(() async {
+    // ✅ Hive 초기화 (임시 디렉토리 사용 - 플랫폼 채널 불필요)
+    tempDir = Directory.systemTemp.createTempSync('hive_test_');
+    Hive.init(tempDir.path);
+    Hive.registerAdapter(YourAdapter());
+
+    // ✅ 로케일 초기화 (필요한 경우)
+    await initializeDateFormatting('ko_KR', null);
+  });
+
+  tearDownAll(() async {
+    // ✅ Hive 정리 (오류 무시)
+    try { await Hive.close(); } catch (e) {}
+    try {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    } catch (e) {}
+  });
+
+  testWidgets('화면 렌더링 테스트', (WidgetTester tester) async {
+    // ✅ AnimationController 있는 위젯은 직접 포함하지 않고 단순한 위젯으로 테스트
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          appBar: AppBar(title: const Text('제목')),
+          body: const Center(child: Text('내용')),
+        ),
+      ),
+    );
+
+    // ✅ pumpAndSettle() 대신 고정 시간 pump 사용
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    expect(find.text('제목'), findsOneWidget);
+  });
+}
+```
+
+### Provider 유닛 테스트 (Hive 통합)
+
+```dart
+import 'dart:io';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
+
+void main() {
+  group('Provider Hive 통합 테스트', () {
+    late YourProvider provider;
+    late Directory tempDir;
+
+    setUpAll(() async {
+      // ✅ Hive 초기화
+      tempDir = Directory.systemTemp.createTempSync('hive_test_provider_');
+      Hive.init(tempDir.path);
+      Hive.registerAdapter(YourAdapter());
+    });
+
+    setUp(() async {
+      provider = YourProvider();
+      await provider.initialize(); // ✅ Hive 기반 Provider는 initialize() 필수
+      await provider.clearAll();   // ✅ 테스트 격리를 위해 데이터 초기화
+    });
+
+    tearDown(() async {
+      await provider.clearAll(); // ✅ 테스트 후 데이터 정리
+    });
+
+    tearDownAll(() async {
+      try { await Hive.close(); } catch (e) {}
+      try {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      } catch (e) {}
+    });
+
+    test('데이터 추가 및 영속화 테스트', () async {
+      // ✅ async 메서드는 반드시 await
+      final item = YourModel(id: '1', name: '테스트');
+      await provider.addItem(item);
+
+      // 새 Provider로 로드하여 영속화 확인
+      final newProvider = YourProvider();
+      await newProvider.initialize();
+      expect(newProvider.items.length, 1);
+
+      await newProvider.clearAll(); // 정리
+    });
+  });
+}
+```
+
+### Provider 유닛 테스트 (생성자 타이머 있는 경우)
+
+```dart
+void main() {
+  group('CalendarProvider 테스트', () {
+    late CalendarProvider provider;
+
+    setUp(() {
+      provider = CalendarProvider(); // 생성자에서 타이머 시작
+    });
+
+    tearDown(() async {
+      // ✅ 생성자 타이머(250ms)가 완료될 때까지 대기 (dangling timer 방지)
+      await Future.delayed(const Duration(milliseconds: 300));
+    });
+
+    test('메서드 테스트', () async {
+      // ✅ async/await 필수
+      await provider.someAsyncMethod();
+      expect(provider.someValue, expectedValue);
+    });
+  });
+}
+```
+
+---
+
+## 🔍 테스트 실패 시 디버깅 순서
+
+테스트가 실패하거나 무한 대기할 때 순서대로 확인하세요:
+
+| 순서 | 증상 | 확인 사항 | 해결 방법 |
+|------|------|-----------|-----------|
+| 1 | `MissingPluginException` | `Hive.initFlutter()` 사용 여부 | `Hive.init(tempDir.path)`로 변경 |
+| 2 | 10분 타임아웃 | `pumpAndSettle()` + AnimationController | 고정 시간 `pump()`로 변경 |
+| 3 | expect 실패 (타이밍) | `await` 누락 여부 | 모든 async 메서드에 `await` 추가 |
+| 4 | 테스트 간 간섭 | 생성자 타이머 미처리 | `tearDown`에서 `Future.delayed(300ms)` 추가 |
+| 5 | MediaQuery 오류 | `MediaQuery.of(context)` 사용 여부 | `MediaQuery` 위젯으로 명시적 제공 |
+
+---
+
+## 📁 이 프로젝트의 테스트 구조
+
+```
+test/
+├── widget_test.dart                          # 기본 UI 렌더링 (Hive 초기화 포함)
+├── models/
+│   └── todo_test.dart                        # Todo 모델 직렬화/역직렬화
+└── providers/
+    ├── calendar_provider_test.dart           # CalendarProvider 로직 (타이머 tearDown 포함)
+    ├── todo_provider_test.dart               # TodoProvider 메모리 작업
+    └── todo_provider_hive_test.dart          # Hive 영속화 통합 테스트
+```
+
+**실행 명령어:**
+```bash
+flutter test                    # 전체 테스트 실행
+flutter test --coverage         # 커버리지 측정
+flutter test test/models/       # 특정 디렉토리만 실행
+```

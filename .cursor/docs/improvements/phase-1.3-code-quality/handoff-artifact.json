@@ -1,0 +1,75 @@
+{
+  "intent": "feature_dev",
+  "summary": "Phase 1.3 Code Quality Improvement: Magic number constantization, app config constants definition, and code deduplication",
+  "plan_steps": [
+    {
+      "id": "S1",
+      "title": "Create lib/constants/app_constants.dart and extract magic numbers",
+      "critical": true
+    },
+    {
+      "id": "S2",
+      "title": "Replace hardcoded values in all widgets with AppConstants",
+      "critical": true
+    },
+    {
+      "id": "S3",
+      "title": "Create lib/constants/app_config.dart and define app configuration constants",
+      "critical": true
+    },
+    {
+      "id": "S4",
+      "title": "Create lib/widgets/common/ directory and extract common widgets",
+      "critical": false
+    },
+    {
+      "id": "S5",
+      "title": "Extract common utility functions",
+      "critical": false
+    }
+  ],
+  "impact_scope": {
+    "files": [
+      "lib/constants/app_constants.dart",
+      "lib/constants/app_config.dart",
+      "lib/widgets/todo_detail_dialog.dart",
+      "lib/widgets/calendar_widget.dart",
+      "lib/widgets/calendar_date_cell.dart",
+      "lib/widgets/todo_input_dialog.dart",
+      "lib/widgets/todo_meta_tags.dart",
+      "lib/screens/calendar_screen.dart",
+      "lib/widgets/custom_date_picker_dialog.dart",
+      "lib/providers/todo_provider.dart",
+      "lib/utils/date_utils.dart"
+    ],
+    "state_management": []
+  },
+  "risks": [
+    "Existing UI layout may change (constant value adjustments may be needed)",
+    "Multiple files modified simultaneously require testing"
+  ],
+  "acceptance_criteria": [
+    "All hardcoded numeric values are extracted to constants",
+    "app_constants.dart and app_config.dart files are created",
+    "Existing UI layout is maintained",
+    "dart analyze passes",
+    "All existing tests pass"
+  ],
+  "scores": {
+    "quality": 85,
+    "efficiency": 80,
+    "stability": 90,
+    "overall": 85
+  },
+  "evaluation_notes": "Foundation work with high stability importance. Existing code modification requires careful approach. Code deduplication is optional and can be done incrementally.",
+  "agent_plan": [
+    {
+      "agent": "planner",
+      "role": "Plan creation and handoff artifact generation"
+    },
+    {
+      "agent": "featureImplementation",
+      "role": "Code quality improvement implementation"
+    }
+  ]
+}

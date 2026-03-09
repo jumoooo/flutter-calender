@@ -1,0 +1,28 @@
+{
+  "project_type": "production",
+  "features": {
+    "studyAgent": false,
+    "documentUploader": false
+  },
+  "paths": {
+    "learning_materials": null
+  },
+  "setup_date": "{date}",
+  "version": "1.0.0",
+  "agents": {
+    "installed": [
+      "uiComponentBuilder",
+      "featureImplementation",
+      "apiIntegration",
+      "agentBuilder",
+      "orchestrator",
+      "planner",
+      "deepDiscoveryAgent",
+      "cursorSetup"
+    ],
+    "optional": [
+      "studyAgent",
+      "documentUploader"
+    ]
+  }
+}

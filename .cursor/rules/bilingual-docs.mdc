@@ -1,0 +1,61 @@
+---
+alwaysApply: true
+description: "Bilingual Documentation - 모든 Agent/Skill/Rule/Doc의 영문 Internal + 한글 사용자용 병기 규칙"
+globs: ".cursor/agents/*.md,.cursor/skills/*.md,.cursor/rules/*.mdc,README.md,*.md"
+---
+
+## Internal Instructions (English)
+
+- Purpose: Enforce **bilingual documentation** (English for internal logic, Korean for user-facing description) for all agent-related files.
+- Scope:
+  - Agent definitions in `.cursor/agents/*.md`
+  - Skills in `.cursor/skills/*.md`
+  - Rules in `.cursor/rules/*.mdc`
+  - Project-level docs and `.md` guides that agents may read
+- Behavior:
+  - Every agent/skill/rule/doc MUST clearly separate:
+    - **Internal Instructions (English)**: what the agent/skill/rule does, how it behaves, how to use it internally.
+    - **사용자용 설명 (한글)**: what the user should know and how to use it, in natural Korean.
+  - English and Korean sections must be **meaning-equivalent**, not diverging in behavior or intent.
+  - When generating or updating docs, `agentBuilder` and related agents should:
+    - First design content in English (internal).
+    - Then generate a Korean user-facing explanation that mirrors the English meaning.
+    - Keep both sections up to date when behavior changes.
+
+## 사용자용 설명 (한글)
+
+# 영·한 병기 문서 규칙 📚
+
+이 규칙은 `.cursor` 아래 Agent, Skill, Rule, 문서들을 **항상 영문 + 한글**로 함께 작성하기 위한 공통 가이드입니다.
+
+## 적용 대상
+
+- `.cursor/agents/*.md` (Agent 정의)
+- `.cursor/skills/*.md` (Skill 정의)
+- `.cursor/rules/*.mdc` (규칙 파일)
+- Agent/Skill/Rule이 참조하는 주요 `.md` 문서
+
+## 기본 원칙
+
+- **Internal 용도**: Agent가 읽고 추론하는 설명/로직은 영어로 작성합니다.
+- **사용자용 설명**: 사용자가 읽는 설명/가이드는 자연스러운 한글로 작성합니다.
+- 두 언어 버전은 **의미가 동일**해야 하며, 동작/의도에서 차이가 나면 안 됩니다.
+
+## 구조 예시
+
+- Rules 파일:
+  - `## Internal Instructions (English)` 섹션
+  - `## 사용자용 설명 (한글)` 섹션
+- Agent/Skill 파일:
+  - `Role / Goals / Persona / Workflow` 등은 영어로 정의
+  - 바로 아래에 `**한글 설명 (사용자용)**` 섹션으로 같은 내용을 한글로 설명
+
+## agentBuilder 연동
+
+- 새로운 Agent/Skill/Rule/Doc을 생성할 때:
+  - 먼저 영어 섹션(Internal Instructions, Role 등)을 설계합니다.
+  - 이어서 같은 의미를 가지는 한글 섹션을 자동으로 생성합니다.
+  - 이후 수정 시에도 **영어/한글 두 섹션을 함께 업데이트**해야 합니다.
+
+이 규칙을 따르면, Agent는 영어로 효율적으로 동작하면서도 사용자는 한글로 편하게 이해할 수 있습니다.
+

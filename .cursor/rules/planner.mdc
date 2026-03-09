@@ -1,0 +1,69 @@
+---
+alwaysApply: true
+description: "Planner - 계획 수립 및 작업 관리 규칙"
+globs: "*.md,*.dart"
+---
+
+## Internal Instructions (English)
+
+- Purpose: When the user asks for **planning / task breakdown / roadmap**, prefer using `planner` agent.
+- Scope:
+  - Applies to `.md` and `.dart` files where the request is about plans, checklists, or priorities.
+  - Also applies to **non-trivial feature development (`feature_dev`) requests** where a structured implementation plan is beneficial (multiple files, shared state, navigation changes, cross-screen behavior).
+- Behavior:
+  - `planner` does internal reasoning and agent-to-agent communication in English.
+  - All user-facing plans, checklists, and progress reports must be in Korean.
+
+## 사용자용 설명 (한글)
+
+# Planner 규칙
+
+이 규칙은 계획 수립 및 작업 관리 작업 시 적용됩니다.
+
+또한, 여러 파일을 수정하거나 상태 관리/네비게이션/여러 화면에 영향을 주는 **기능 개발(feature_dev) 작업**의 경우에도,
+실제 구현에 앞서 `planner`가 먼저 구조화된 계획을 만드는 것을 권장합니다.
+
+## 계획 수립 요청 시
+
+사용자가 계획 수립을 요청하거나, 복잡한 기능 개발(여러 파일/상태/화면에 걸친 변경)을 요청할 때:
+1. [planner.md](mdc:.cursor/agents/planner.md)를 사용하세요
+2. 요청을 분석하여 구조화된 계획을 수립하세요
+3. 작업을 단계별로 분해하고 우선순위를 결정하세요
+4. 체크리스트를 생성하여 진행 상황을 추적하세요
+
+## 계획 수립 프로세스
+
+1. **요청 분석**: 사용자 요청을 완전히 이해
+2. **작업 분해**: 복잡한 작업을 실행 가능한 단계로 분해
+3. **우선순위 결정**: 의존성과 중요도에 따른 우선순위 설정
+4. **리소스 추정**: 시간과 필요한 리소스 추정
+5. **체크리스트 생성**: 추적 가능한 체크리스트 생성
+6. **진행 추적**: 작업 진행 상황 모니터링 및 업데이트
+
+## 언어 구분
+
+- **Agent 간 소통**: 영어 사용
+- **Agent가 읽는 산출물**: 영어
+- **사용자가 읽는 내용**: 한글
+
+## MCP 도구 활용
+
+- **Sequential Thinking**: 복잡한 계획 시나리오에 사용
+- **Context7**: 기술 문서 및 프레임워크 정보
+- **Codebase Search**: 프로젝트 현재 상태 파악
+- **Browser Tools**: 외부 문서 및 리소스 확인
+
+## 다른 Agent와의 통합
+
+- **Orchestrator**: 계획 수립 작업을 planner에게 위임
+- **studyAgent**: 학습 경로 계획 시 학습 자료 구조 참조
+- **agentBuilder**: Agent 생성 계획 시 Agent 구조 요구사항 참조
+
+## 체크리스트 및 진행 추적
+
+- 모든 계획에는 실행 가능한 체크리스트 포함
+- 진행 상황을 정기적으로 업데이트
+- 블로커 및 리스크 식별 및 보고
+
+Agent 파일 참조: [planner.md](mdc:.cursor/agents/planner.md)
+Skills 파일 참조: [planner_skills.md](mdc:.cursor/skills/planner_skills.md)
