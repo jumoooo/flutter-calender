@@ -502,14 +502,16 @@ class _CalendarWidgetState extends State<CalendarWidget>
               itemCount: itemCount, // 현재 월의 마지막 날짜가 포함된 row까지 표시
               itemBuilder: (context, index) {
                 final date = calendarDays[index];
-                final isSelected = korean_date.KoreanDateUtils.isSameDay(
-                  date,
-                  selectedDate,
-                );
 
-                // 현재 월인지 다음 달인지 판단
+                // 현재 월인지 다음/이전 달인지 판단
                 final isCurrentMonth =
                     date.month == month.month && date.year == month.year;
+
+                // 선택 상태는 "현재 월" 셀에만 표시하여
+                // 이전/다음 달 여분 날짜(다음 달 1일 등)에 선택 하이라이트가 남지 않도록 한다.
+                final isSelected =
+                    isCurrentMonth &&
+                    korean_date.KoreanDateUtils.isSameDay(date, selectedDate);
 
                 return CalendarDateCell(
                   date: date,
@@ -578,10 +580,13 @@ class _CalendarWidgetState extends State<CalendarWidget>
             final date = calendarDays[index];
             final isCurrentMonth =
                 date.month == month.month && date.year == month.year;
-            final isSelected = korean_date.KoreanDateUtils.isSameDay(
-              date,
-              selectedDate,
-            );
+
+            // 기본 모드에서도 선택 하이라이트는 "해당 월" 셀에만 표시
+            // → 4월 1일이 선택된 상태에서 3월 달력을 볼 때,
+            //   3월 하단의 "4월 1일" 여분 셀에는 포커스가 남지 않도록 함.
+            final isSelected =
+                isCurrentMonth &&
+                korean_date.KoreanDateUtils.isSameDay(date, selectedDate);
 
             return CalendarDateCell(
               date: date,
