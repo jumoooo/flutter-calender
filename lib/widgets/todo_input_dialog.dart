@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_calender/constants/app_constants.dart';
 import 'package:flutter_calender/constants/priority_colors.dart';
 import 'package:flutter_calender/models/todo.dart';
 import 'package:flutter_calender/providers/category_provider.dart';
@@ -55,6 +57,9 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
   DateTime? _selectedDueDate;
   TimeOfDay? _selectedTime;
 
+  // 경고 스트림 구독
+  StreamSubscription<int>? _warningSubscription;
+
   bool get _isEditMode => widget.todo != null;
 
   @override
@@ -78,6 +83,14 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
         if (mounted) _titleFocusNode.requestFocus();
       });
     }
+
+    // 경고 스트림 구독 (할일 개수 경고)
+    final provider = Provider.of<TodoProvider>(context, listen: false);
+    _warningSubscription = provider.warningStream.listen((count) {
+      if (mounted) {
+        _showWarningDialog(count, provider.maxTodoCount);
+      }
+    });
   }
 
   @override
@@ -85,7 +98,39 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
     _titleController.dispose();
     _descriptionController.dispose();
     _titleFocusNode.dispose();
+    _warningSubscription?.cancel();
     super.dispose();
+  }
+
+  // ─── 경고 다이얼로그 ──────────────────────────────────────────────────────────
+
+  /// 할일 개수 경고 다이얼로그 표시
+  Future<void> _showWarningDialog(int currentCount, int? maxCount) async {
+    if (maxCount == null) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('할일 개수 경고'),
+          ],
+        ),
+        content: Text(
+          '현재 할일 개수가 ${currentCount}개입니다.\n'
+          '제한(${maxCount}개)에 가까워지고 있습니다.\n\n'
+          '일부 할일을 완료하거나 삭제하는 것을 권장합니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
   }
 
   // ─── 저장 ─────────────────────────────────────────────────────────────────
@@ -128,13 +173,18 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
         await provider.addTodo(newTodo);
       }
       if (mounted) Navigator.of(context).pop();
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
+        // 할일 개수 제한 초과 에러인 경우 특별 처리
+        final errorMessage = e.toString().contains('할일 개수 제한')
+            ? '할일 개수 제한(${provider.maxTodoCount ?? '제한 없음'}개)에 도달했습니다.\n일부 할일을 삭제한 후 다시 시도해주세요.'
+            : '저장 중 오류가 발생했습니다.';
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('저장 중 오류가 발생했습니다.'),
+          SnackBar(
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -233,12 +283,14 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
 
     return Dialog(
       backgroundColor: cs.surface,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+      insetPadding: AppConstants.dialogInsetPadding,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(
+          borderRadius: AppConstants.dialogBorderRadius),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          minHeight: MediaQuery.of(context).size.height * 0.55,
+          minHeight: MediaQuery.of(context).size.height *
+              AppConstants.dialogMinHeightRatio,
           maxHeight: MediaQuery.of(context).size.height * 0.88,
         ),
         child: Column(

@@ -1,3 +1,4 @@
+import 'package:flutter_calender/constants/app_config.dart';
 import 'package:intl/intl.dart';
 import 'package:klc/klc.dart' as klc;
 
@@ -93,8 +94,8 @@ class KoreanDateUtils {
     final cached = _lunarCache[cacheKey];
     if (cached != null) return cached;
 
-    // ✅ 캐시 크기 제한 (500개 초과 시 가장 오래된 항목 제거)
-    if (_lunarCache.length >= 500) {
+    // ✅ 캐시 크기 제한 (최대 개수 초과 시 가장 오래된 항목 제거)
+    if (_lunarCache.length >= AppConfig.maxLunarCacheSize) {
       _lunarCache.remove(_lunarCache.keys.first);
     }
 

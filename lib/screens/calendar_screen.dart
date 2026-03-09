@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_calender/constants/app_constants.dart';
 import 'package:flutter_calender/providers/calendar_provider.dart';
 import 'package:flutter_calender/providers/todo_provider.dart';
 import 'package:flutter_calender/screens/category_screen.dart';
@@ -146,12 +147,12 @@ class _TodayFloatingButton extends StatelessWidget {
         return Positioned(
           left: 0,
           right: 0,
-          bottom: 24,
+          bottom: AppConstants.iconSizeMedium,
           child: Center(
             child: Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: AppConstants.dialogBorderRadius,
                 boxShadow: [
                   // 살짝 떠 있는 느낌을 주기 위한 그림자
                   BoxShadow(
@@ -168,11 +169,11 @@ class _TodayFloatingButton extends StatelessWidget {
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 10,
+                    vertical: AppConstants.spacingMedium,
                   ),
                   foregroundColor: Theme.of(context).colorScheme.onSurface,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: AppConstants.dialogBorderRadius,
                   ),
                 ),
                 icon: const Icon(Icons.today, size: 18),

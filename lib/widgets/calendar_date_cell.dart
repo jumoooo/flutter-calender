@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_calender/constants/app_constants.dart';
 import 'package:flutter_calender/constants/priority_colors.dart';
 import 'package:flutter_calender/models/todo.dart';
 import 'package:flutter_calender/providers/calendar_provider.dart';
@@ -81,7 +82,9 @@ class CalendarDateCell extends StatelessWidget {
                     color: isSelected || isDragOver
                         ? colorScheme.primary
                         : colorScheme.outlineVariant.withValues(alpha: 0.45),
-                    width: isSelected || isDragOver ? 2 : 0.5,
+                    width: isSelected || isDragOver
+                        ? AppConstants.borderWidthThick
+                        : AppConstants.borderWidthThin,
                   ),
                 ),
                 child: Padding(
@@ -104,7 +107,7 @@ class CalendarDateCell extends StatelessWidget {
                               '${date.day}',
                               style: TextStyle(
                                 fontSize: 14,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: AppConstants.fontWeightBold,
                                 color: colorScheme.surface,
                               ),
                             ),

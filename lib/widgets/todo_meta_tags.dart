@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_calender/constants/app_constants.dart';
 import 'package:flutter_calender/models/category.dart';
 import 'package:flutter_calender/models/todo.dart';
 import 'package:flutter_calender/utils/date_utils.dart' as korean_date;
@@ -89,11 +90,13 @@ class _MiniTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      padding: AppConstants.microPadding,
       decoration: BoxDecoration(
-        color: color.withAlpha(20),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withAlpha(120), width: 0.6),
+        color: color.withAlpha(AppConstants.alphaVeryTransparent),
+        borderRadius: AppConstants.chipBorderRadius,
+        border: Border.all(
+            color: color.withAlpha(120),
+            width: AppConstants.borderWidthThin),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -105,7 +108,7 @@ class _MiniTag extends StatelessWidget {
             style: TextStyle(
               fontSize: 9,
               color: color,
-              fontWeight: FontWeight.w600,
+              fontWeight: AppConstants.fontWeightSemiBold,
             ),
           ),
         ],

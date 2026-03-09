@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_calender/constants/app_constants.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 커스텀 날짜 선택 다이얼로그
@@ -79,7 +80,7 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
 
     _slideController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: AppConstants.animationDuration,
     );
 
     _calendarSlideAnim =
@@ -374,9 +375,10 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
 
     return Dialog(
       backgroundColor: cs.surface,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      insetPadding: AppConstants.dialogInsetPaddingSmall,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

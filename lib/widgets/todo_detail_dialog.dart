@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_calender/constants/app_constants.dart';
 import 'package:flutter_calender/constants/priority_colors.dart';
 import 'package:flutter_calender/models/todo.dart';
 import 'package:flutter_calender/providers/category_provider.dart';
@@ -98,13 +99,16 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
 
     return Dialog(
       backgroundColor: cs.surface,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+      insetPadding: AppConstants.dialogInsetPadding,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(
+          borderRadius: AppConstants.dialogBorderRadius),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          minHeight: MediaQuery.of(context).size.height * 0.55,
-          maxHeight: MediaQuery.of(context).size.height * 0.80,
+          minHeight: MediaQuery.of(context).size.height *
+              AppConstants.dialogMinHeightRatio,
+          maxHeight: MediaQuery.of(context).size.height *
+              AppConstants.dialogMaxHeightRatio,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -112,11 +116,11 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
           children: [
             // ── 헤더: 우선순위 색상 강조 바 + 수정 버튼 ──────────────────────
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 18, 12, 16),
+              padding: AppConstants.headerPadding,
               decoration: BoxDecoration(
-                color: priorityColor.withAlpha(26),
+                color: priorityColor.withAlpha(AppConstants.alphaSemiTransparent),
                 border: Border(
-                  left: BorderSide(color: priorityColor, width: 4),
+                  left: AppConstants.borderSideEmphasis(priorityColor),
                 ),
               ),
               child: Row(
@@ -129,30 +133,31 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
                         // 우선순위 뱃지 — 중앙화된 label 메서드 사용
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                              horizontal: AppConstants.paddingVerticalSmall,
+                              vertical: AppConstants.paddingVerticalTiny),
                           decoration: BoxDecoration(
-                            color: priorityColor.withAlpha(36),
-                            borderRadius: BorderRadius.circular(999),
+                            color: priorityColor.withAlpha(AppConstants.alphaMedium),
+                            borderRadius: AppConstants.chipBorderRadius,
                             border: Border.all(
-                              color: priorityColor.withAlpha(180),
-                              width: 0.8,
+                              color: priorityColor.withAlpha(AppConstants.alphaVeryOpaque),
+                              width: AppConstants.borderWidth,
                             ),
                           ),
                           child: Text(
                             PriorityColors.label(_todo.priority),
                             style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                              fontSize: AppConstants.fontSizeSmall,
+                              fontWeight: AppConstants.fontWeightBold,
                               color: priorityColor,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppConstants.spacing),
                         // 제목
                         Text(
                           _todo.title,
                           style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppConstants.fontWeightBold,
                             color: cs.onSurface,
                             decoration: _todo.completed
                                 ? TextDecoration.lineThrough
@@ -166,12 +171,13 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
                   // 수정 버튼
                   IconButton(
                     onPressed: _goToEdit,
-                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    icon: const Icon(Icons.edit_outlined,
+                        size: AppConstants.iconSize),
                     tooltip: '수정',
                     style: IconButton.styleFrom(
                       foregroundColor: cs.onSurfaceVariant,
                       backgroundColor: cs.surfaceContainerHighest,
-                      minimumSize: const Size(36, 36),
+                      minimumSize: AppConstants.buttonMinSizeBox,
                       padding: EdgeInsets.zero,
                     ),
                   ),
@@ -182,7 +188,7 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
             // ── 본문 ──────────────────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                padding: AppConstants.contentPadding,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -194,14 +200,14 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
                         dateStr,
                         style: textTheme.bodyMedium?.copyWith(
                           color: cs.onSurface,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: AppConstants.fontWeightNormal,
                         ),
                       ),
                     ),
 
                     // 시간 (설정된 경우만)
                     if (_todo.todoTime != null) ...[
-                      const SizedBox(height: 10),
+                      const SizedBox(height: AppConstants.spacingMedium),
                       _InfoRow(
                         icon: Icons.access_time_outlined,
                         iconColor: cs.primary,
@@ -209,7 +215,7 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
                           _todo.todoTime!.format(context),
                           style: textTheme.bodyMedium?.copyWith(
                             color: cs.onSurface,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: AppConstants.fontWeightNormal,
                           ),
                         ),
                       ),
@@ -217,7 +223,7 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
 
                     // 기한 (설정된 경우만)
                     if (_todo.dueDate != null) ...[
-                      const SizedBox(height: 10),
+                      const SizedBox(height: AppConstants.spacingMedium),
                       _InfoRow(
                         icon: Icons.flag_outlined,
                         iconColor: isDueOverdue
@@ -236,47 +242,49 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
                                     : isDueToday
                                         ? Colors.orange
                                         : cs.onSurface,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: AppConstants.fontWeightNormal,
                               ),
                             ),
                             if (isDueOverdue) ...[
-                              const SizedBox(width: 6),
+                              const SizedBox(width: AppConstants.spacingSmall),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                    horizontal: AppConstants.spacingSmall,
+                                    vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.withAlpha(24),
-                                  borderRadius: BorderRadius.circular(999),
+                                  color: Colors.red.withAlpha(AppConstants.alphaTransparent),
+                                  borderRadius: AppConstants.chipBorderRadius,
                                   border: Border.all(
-                                      color: Colors.red.withAlpha(160),
-                                      width: 0.8),
+                                      color: Colors.red.withAlpha(AppConstants.alphaOpaque),
+                                      width: AppConstants.borderWidth),
                                 ),
                                 child: const Text(
                                   '기한 초과',
                                   style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
+                                    fontSize: AppConstants.fontSizeTiny,
+                                    fontWeight: AppConstants.fontWeightBold,
                                     color: Colors.red,
                                   ),
                                 ),
                               ),
                             ] else if (isDueToday) ...[
-                              const SizedBox(width: 6),
+                              const SizedBox(width: AppConstants.spacingSmall),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                    horizontal: AppConstants.spacingSmall,
+                                    vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.orange.withAlpha(24),
-                                  borderRadius: BorderRadius.circular(999),
+                                  color: Colors.orange.withAlpha(AppConstants.alphaTransparent),
+                                  borderRadius: AppConstants.chipBorderRadius,
                                   border: Border.all(
-                                      color: Colors.orange.withAlpha(160),
-                                      width: 0.8),
+                                      color: Colors.orange.withAlpha(AppConstants.alphaOpaque),
+                                      width: AppConstants.borderWidth),
                                 ),
                                 child: const Text(
                                   '오늘까지',
                                   style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
+                                    fontSize: AppConstants.fontSizeTiny,
+                                    fontWeight: AppConstants.fontWeightBold,
                                     color: Colors.orange,
                                   ),
                                 ),
@@ -289,7 +297,7 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
 
                     // 카테고리 (설정된 경우만)
                     if (_todo.categoryId != null) ...[
-                      const SizedBox(height: 10),
+                      const SizedBox(height: AppConstants.spacingMedium),
                       Consumer<CategoryProvider>(
                         builder: (context, categoryProvider, _) {
                           final category =
@@ -302,20 +310,21 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
                             expand: false,
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
+                                  horizontal: AppConstants.spacing,
+                                  vertical: AppConstants.paddingVerticalTiny),
                               decoration: BoxDecoration(
                                 color: category.color.withAlpha(30),
-                                borderRadius: BorderRadius.circular(999),
+                                borderRadius: AppConstants.chipBorderRadius,
                                 border: Border.all(
-                                  color: category.color.withAlpha(160),
-                                  width: 0.8,
+                                  color: category.color.withAlpha(AppConstants.alphaOpaque),
+                                  width: AppConstants.borderWidth,
                                 ),
                               ),
                               child: Text(
                                 category.name,
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: AppConstants.fontSize,
+                                  fontWeight: AppConstants.fontWeightSemiBold,
                                   color: category.color,
                                 ),
                               ),
@@ -326,7 +335,7 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
                     ],
 
                     // 완료 상태 — 클릭으로 토글
-                    const SizedBox(height: 10),
+                    const SizedBox(height: AppConstants.spacingMedium),
                     MouseRegion(
                       cursor: SystemMouseCursors.click,
                       child: GestureDetector(
@@ -343,7 +352,7 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
                               color: _todo.completed
                                   ? Colors.green
                                   : cs.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: AppConstants.fontWeightNormal,
                             ),
                           ),
                         ),
@@ -353,10 +362,11 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
                     // 설명 (있는 경우만)
                     if (_todo.description != null &&
                         _todo.description!.isNotEmpty) ...[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: AppConstants.spacingLarge),
                       Divider(
-                          color: cs.outlineVariant.withAlpha(100), height: 1),
-                      const SizedBox(height: 14),
+                          color: cs.outlineVariant.withAlpha(100),
+                          height: 1),
+                      const SizedBox(height: AppConstants.spacingLarge),
                       _InfoRow(
                         icon: Icons.notes_rounded,
                         iconColor: cs.onSurfaceVariant,
@@ -365,7 +375,7 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
                           _todo.description!,
                           style: textTheme.bodyMedium?.copyWith(
                             color: cs.onSurfaceVariant,
-                            height: 1.5,
+                            height: AppConstants.dividerHeight,
                           ),
                         ),
                       ),
@@ -382,7 +392,11 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
 
             // ── 하단 버튼 ──────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+              padding: const EdgeInsets.fromLTRB(
+                  AppConstants.paddingHorizontalSmall,
+                  4,
+                  AppConstants.paddingHorizontalSmall,
+                  AppConstants.paddingHorizontalSmall),
               child: Row(
                 children: [
                   // 삭제 버튼
@@ -392,8 +406,7 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
                     label: const Text('삭제'),
                     style: TextButton.styleFrom(
                       foregroundColor: cs.error,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                      padding: AppConstants.smallPadding,
                     ),
                   ),
                   const Spacer(),
@@ -401,8 +414,7 @@ class _TodoDetailDialogState extends State<TodoDetailDialog> {
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 8),
+                      padding: AppConstants.buttonPadding,
                     ),
                     child: const Text('닫기'),
                   ),
@@ -443,7 +455,7 @@ class _InfoRow extends StatelessWidget {
       crossAxisAlignment: crossAxisAlignment,
       children: [
         Icon(icon, size: 18, color: iconColor),
-        const SizedBox(width: 10),
+        const SizedBox(width: AppConstants.spacingMedium),
         // expand=false 이면 글자 크기에 맞게 줄어듦
         if (expand) Expanded(child: child) else child,
       ],
