@@ -189,14 +189,14 @@ class _CalendarWidgetState extends State<CalendarWidget>
       );
 
       if (!mounted) return;
-      
+
       setState(() {
         _selectedTodoIds.clear();
         _isSelectionMode = false;
       });
 
       if (!mounted) return;
-      
+
       // 성공 메시지 표시 (되돌리기 액션 포함)
       SnackbarHelper.showSuccess(
         context,
@@ -210,12 +210,9 @@ class _CalendarWidgetState extends State<CalendarWidget>
       );
     } catch (e) {
       if (!mounted) return;
-      
+
       // 에러 메시지 표시
-      SnackbarHelper.showError(
-        context,
-        '삭제 중 오류가 발생했습니다: ${e.toString()}',
-      );
+      SnackbarHelper.showError(context, '삭제 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
 
@@ -548,31 +545,53 @@ class _CalendarWidgetState extends State<CalendarWidget>
         ? ((lastDayIndex ~/ 7) + 1) * 7
         : calendarDays.length;
 
-    return GridView.builder(
-      key: ValueKey('${month.year}-${month.month}'),
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 7,
-        // 항상 동일 비율(정사각형)
-        childAspectRatio: 1.0,
-      ),
-      itemCount: itemCount,
-      itemBuilder: (context, index) {
-        final date = calendarDays[index];
-        final isCurrentMonth =
-            date.month == month.month && date.year == month.year;
-        final isSelected = korean_date.KoreanDateUtils.isSameDay(
-          date,
-          selectedDate,
-        );
+    // 기본 모드에서도 5주/6주 달 모두 잘리지 않도록
+    // 가용 높이와 행(row) 개수에 따라 셀 비율을 동적으로 계산
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 기본값: 정사각형 셀
+        double aspectRatio = 1.0;
 
-        return CalendarDateCell(
-          date: date,
-          isSelected: isSelected,
-          isCurrentMonth: isCurrentMonth,
-          isDragTarget: true,
-          // 기본 모드에서는 점 표시 스타일 사용
-          showMiniTodoPreview: false,
+        // 높이가 제한되어 있는 경우에만 동적 계산 수행
+        if (constraints.hasBoundedHeight &&
+            constraints.maxHeight > 0 &&
+            constraints.maxWidth > 0) {
+          final rows = (itemCount / 7).ceil(); // 5 또는 6
+          final cellWidth = constraints.maxWidth / 7;
+          final cellHeight = constraints.maxHeight / rows;
+
+          if (cellHeight > 0) {
+            aspectRatio = cellWidth / cellHeight;
+          }
+        }
+
+        return GridView.builder(
+          key: ValueKey('${month.year}-${month.month}'),
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 7,
+            // 화면 높이에 맞추어 계산된 비율 사용
+            childAspectRatio: aspectRatio,
+          ),
+          itemCount: itemCount,
+          itemBuilder: (context, index) {
+            final date = calendarDays[index];
+            final isCurrentMonth =
+                date.month == month.month && date.year == month.year;
+            final isSelected = korean_date.KoreanDateUtils.isSameDay(
+              date,
+              selectedDate,
+            );
+
+            return CalendarDateCell(
+              date: date,
+              isSelected: isSelected,
+              isCurrentMonth: isCurrentMonth,
+              isDragTarget: true,
+              // 기본 모드에서는 점 표시 스타일 사용
+              showMiniTodoPreview: false,
+            );
+          },
         );
       },
     );
@@ -614,10 +633,13 @@ class _CalendarWidgetState extends State<CalendarWidget>
                     children: [
                       Text(
                         '선택된 날짜 일정',
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                       // 일정만 모드가 아닐 때만 날짜/요일/음력 표시
                       if (!isScheduleOnly) ...[
@@ -644,9 +666,12 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                   ),
                                   TextSpan(
                                     text: lunarDescription,
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
                                   ),
                                 ],
                               ),
@@ -724,11 +749,13 @@ class _CalendarWidgetState extends State<CalendarWidget>
                   itemCount: todos.length,
                   itemBuilder: (context, index) {
                     final todo = todos[index];
-                    final isSelected = _isSelectionMode && _selectedTodoIds.contains(todo.id);
+                    final isSelected =
+                        _isSelectionMode && _selectedTodoIds.contains(todo.id);
                     return Consumer<CategoryProvider>(
                       builder: (context, categoryProvider, _) {
-                        final category =
-                            categoryProvider.getById(todo.categoryId);
+                        final category = categoryProvider.getById(
+                          todo.categoryId,
+                        );
                         return InkWell(
                           onTap: _isSelectionMode
                               ? () => _toggleTodoSelection(todo.id)
@@ -757,56 +784,57 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                   if (_isSelectionMode) ...[
                                     Checkbox(
                                       value: isSelected,
-                                      onChanged: (_) => _toggleTodoSelection(todo.id),
+                                      onChanged: (_) =>
+                                          _toggleTodoSelection(todo.id),
                                     ),
                                     const SizedBox(width: 4),
                                   ],
                                   _priorityIcon(todo.priority),
                                   const SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        todo.title,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w500,
-                                              decoration: todo.completed
-                                                  ? TextDecoration.lineThrough
-                                                  : null,
-                                              color: todo.completed
-                                                  ? Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant
-                                                  : null,
-                                            ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      // 카테고리/시간/기한 메타 태그
-                                      if (category != null ||
-                                          todo.todoTime != null ||
-                                          todo.dueDate != null) ...[
-                                        const SizedBox(height: 3),
-                                        TodoMetaTagsRow(
-                                          todo: todo,
-                                          category: category,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          todo.title,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w500,
+                                                decoration: todo.completed
+                                                    ? TextDecoration.lineThrough
+                                                    : null,
+                                                color: todo.completed
+                                                    ? Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant
+                                                    : null,
+                                              ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
+                                        // 카테고리/시간/기한 메타 태그
+                                        if (category != null ||
+                                            todo.todoTime != null ||
+                                            todo.dueDate != null) ...[
+                                          const SizedBox(height: 3),
+                                          TodoMetaTagsRow(
+                                            todo: todo,
+                                            category: category,
+                                          ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
-                                ),
-                                if (todo.completed)
-                                  Icon(
-                                    Icons.check_circle_rounded,
-                                    size: 16,
-                                    color: Colors.green[400],
-                                  ),
-                              ],
-                            ),
+                                  if (todo.completed)
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      size: 16,
+                                      color: Colors.green[400],
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                         );
@@ -836,7 +864,8 @@ class _CalendarWidgetState extends State<CalendarWidget>
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     TextButton.icon(
-                      onPressed: () => _showBatchDeleteDialog(context, todoProvider),
+                      onPressed: () =>
+                          _showBatchDeleteDialog(context, todoProvider),
                       icon: const Icon(Icons.delete_outline, size: 18),
                       label: const Text('일괄 삭제'),
                       style: TextButton.styleFrom(
@@ -902,10 +931,8 @@ class _CalendarWidgetState extends State<CalendarWidget>
                       final wd = selectedDate.weekday % 7;
                       final isSun = wd == 0;
                       final isSat = wd == 6;
-                      final weekdayLabel =
-                          korean_date.KoreanDateUtils.getKoreanWeekday(
-                            selectedDate,
-                          );
+                      final weekdayLabel = korean_date
+                          .KoreanDateUtils.getKoreanWeekday(selectedDate);
                       return RichText(
                         text: TextSpan(
                           style: Theme.of(context).textTheme.titleLarge
@@ -921,8 +948,8 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                 color: isSun
                                     ? Colors.red
                                     : isSat
-                                        ? Colors.blue
-                                        : null,
+                                    ? Colors.blue
+                                    : null,
                               ),
                             ),
                           ],
@@ -966,7 +993,9 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                         ? Colors.red
                                         : day == '토'
                                         ? Colors.blue
-                                        : Theme.of(context).colorScheme.onSurface,
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
                                   ),
                             ),
                           ),
@@ -1189,10 +1218,8 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                                 selectedDate,
                                               );
                                           // getTodosByDate()가 이미 정렬을 적용하므로 추가 정렬 불필요
-                                          final currentTodos =
-                                              todoProvider.getTodosByDate(
-                                                selectedDate,
-                                              );
+                                          final currentTodos = todoProvider
+                                              .getTodosByDate(selectedDate);
 
                                           // 이웃 날짜 (왼쪽으로 드래그 → 다음 날짜, 오른쪽으로 드래그 → 이전 날짜)
                                           final neighborDate = isDraggingToNext
@@ -1215,10 +1242,8 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                                 neighborDate,
                                               );
                                           // getTodosByDate()가 이미 정렬을 적용하므로 추가 정렬 불필요
-                                          final neighborTodos =
-                                              todoProvider.getTodosByDate(
-                                                neighborDate,
-                                              );
+                                          final neighborTodos = todoProvider
+                                              .getTodosByDate(neighborDate);
 
                                           return Container(
                                             width: double.infinity,
@@ -1229,11 +1254,16 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                               16,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Theme.of(context).colorScheme.surface,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.surface,
                                               boxShadow: [
                                                 // 달력을 덮는 느낌을 위한 그림자
                                                 BoxShadow(
-                                                  color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .shadow
+                                                      .withValues(alpha: 0.1),
                                                   blurRadius: 8,
                                                   offset: const Offset(0, -2),
                                                 ),
@@ -1395,9 +1425,9 @@ class _SortFilterButtons extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 '정렬 방식',
-                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  ctx,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
             ...TodoSortType.values.map((sortType) {
@@ -1405,9 +1435,7 @@ class _SortFilterButtons extends StatelessWidget {
               return ListTile(
                 leading: Icon(
                   _sortIcon(sortType),
-                  color: isSelected
-                      ? Theme.of(ctx).colorScheme.primary
-                      : null,
+                  color: isSelected ? Theme.of(ctx).colorScheme.primary : null,
                 ),
                 title: Text(
                   _sortLabelFull(sortType),
@@ -1419,8 +1447,10 @@ class _SortFilterButtons extends StatelessWidget {
                   ),
                 ),
                 trailing: isSelected
-                    ? Icon(Icons.check,
-                        color: Theme.of(ctx).colorScheme.primary)
+                    ? Icon(
+                        Icons.check,
+                        color: Theme.of(ctx).colorScheme.primary,
+                      )
                     : null,
                 onTap: () {
                   todoProvider.setSortType(sortType);
@@ -1487,7 +1517,9 @@ class _CalendarSkeleton extends StatelessWidget {
                 return Container(
                   margin: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                 );
@@ -1515,7 +1547,9 @@ class _CalendarSkeleton extends StatelessWidget {
                   width: 100,
                   height: 12,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -1525,7 +1559,9 @@ class _CalendarSkeleton extends StatelessWidget {
                     itemCount: 4,
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
-                      final skeletonColor = Theme.of(context).colorScheme.surfaceContainerHighest;
+                      final skeletonColor = Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest;
                       return Row(
                         children: [
                           Container(
@@ -1575,7 +1611,7 @@ class _CalendarSkeleton extends StatelessWidget {
 }
 
 /// 우선순위별 대표 색상
-/// 
+///
 /// 중앙 상수 파일에서 색상을 가져옵니다.
 Color _priorityColor(TodoPriority priority) {
   return PriorityColors.getColor(priority);
