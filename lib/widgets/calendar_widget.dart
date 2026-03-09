@@ -41,6 +41,14 @@ class _CalendarWidgetState extends State<CalendarWidget>
   /// 현재 화면 표시 모드
   _ViewMode _viewMode = _ViewMode.both;
 
+  /// UI 전용: 화면에 실제로 표시되는 기준 월
+  ///
+  /// - Provider(CalendarProvider)의 currentMonth 와 분리해서 관리
+  /// - 애니메이션 중에는 이 값을 기준으로 그리드/이웃 월을 계산
+  /// - Provider 쪽 월이 외부 동작(오늘로 이동, 날짜 스와이프 등)으로 변경되면
+  ///   애니메이션이 아닐 때 동기화
+  DateTime _uiDisplayMonth = DateTime.now();
+
   /// 상단 달력 영역 가로 드래그 오프셋
   double _monthDragOffset = 0;
 
@@ -74,6 +82,18 @@ class _CalendarWidgetState extends State<CalendarWidget>
   @override
   void initState() {
     super.initState();
+    // 초기 UI 기준 월을 Provider의 currentMonth 로 동기화
+    // (build 시점에도 Provider 값을 사용해 한 번 더 보정하므로 여기서는 대략적인 초기값만 설정)
+    try {
+      final calendarProvider = Provider.of<CalendarProvider>(
+        context,
+        listen: false,
+      );
+      _uiDisplayMonth = calendarProvider.currentMonth;
+    } catch (_) {
+      // Provider가 아직 트리에 없을 수 있는 초기 단계 대비 (안전용)
+      _uiDisplayMonth = DateTime.now();
+    }
     _monthAnimationController = AnimationController(
       vsync: this,
       duration: AppConstants.animationDuration,
@@ -103,6 +123,25 @@ class _CalendarWidgetState extends State<CalendarWidget>
         // - endOffset == 0 인 경우: 단순 "되돌리기" 이므로 월 변경 없음
         // - endOffset < 0: 다음 달
         // - endOffset > 0: 이전 달
+        //
+        // ⚠️ 주의: Provider의 currentMonth를 먼저 바꾸면
+        //   - currentMonth는 새 달
+        //   - _monthDragOffset은 여전히 ±뷰포트 폭
+        // 인 상태로 한 프레임 빌드되어 "엉뚱한 달이 잠깐 보였다가 팟 바뀌는" 현상이 발생한다.
+        // 따라서 1) 애니메이션/드래그 상태를 먼저 리셋하고,
+        //       2) 그 다음에 Provider의 월 상태를 변경한다.
+
+        // 현재 애니메이션 방향(목표 오프셋)을 로컬에 보관
+        final double finalOffset = _monthAnimationEndOffset;
+
+        // 1) 애니메이션/드래그 상태를 먼저 리셋
+        _monthAnimationController.reset();
+        setState(() {
+          _monthDragOffset = 0;
+          _monthAnimationEndOffset = 0;
+        });
+
+        // 2) 그 다음에 Provider의 월 상태를 변경
         final calendarProvider = Provider.of<CalendarProvider>(
           context,
           listen: false,
@@ -111,20 +150,15 @@ class _CalendarWidgetState extends State<CalendarWidget>
         // float 비교용 작은 epsilon
         const double epsilon = 0.5;
 
-        if (_monthAnimationEndOffset < -epsilon) {
+        if (finalOffset < -epsilon) {
           // 화면이 왼쪽으로 이동 → 다음 달로 넘어가는 효과
           await calendarProvider.nextMonth();
-        } else if (_monthAnimationEndOffset > epsilon) {
+        } else if (finalOffset > epsilon) {
           // 화면이 오른쪽으로 이동 → 이전 달로 넘어가는 효과
           await calendarProvider.previousMonth();
         }
 
-        // 상태 리셋
-        _monthAnimationController.reset();
-        setState(() {
-          _monthDragOffset = 0;
-          _monthAnimationEndOffset = 0;
-        });
+        // Provider 변경으로 리빌드되므로 여기서 추가 setState는 필요 없음
       }
     });
   }
@@ -349,6 +383,13 @@ class _CalendarWidgetState extends State<CalendarWidget>
       _monthDragOffset = 0;
       _dayDragOffset = 0;
     });
+  }
+
+  /// 두 날짜가 같은 년/월인지 비교하는 헬퍼
+  ///
+  /// - Provider 의 currentMonth 와 UI 기준 월 동기화 여부를 판단할 때 사용
+  bool _isSameMonth(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month;
   }
 
   /// 세로 드래그 종료 처리 헬퍼 (화면 모드 전환)
@@ -961,9 +1002,19 @@ class _CalendarWidgetState extends State<CalendarWidget>
   Widget build(BuildContext context) {
     return Consumer2<CalendarProvider, TodoProvider>(
       builder: (context, calendarProvider, todoProvider, child) {
-        final currentMonth = calendarProvider.currentMonth;
+        final providerMonth = calendarProvider.currentMonth;
         final selectedDate = calendarProvider.selectedDate;
         final isTransitioning = calendarProvider.isTransitioning;
+
+        // Provider 의 월이 UI 기준 월과 다르고, 애니메이션 중이 아니라면
+        // 외부 동작(오늘로 이동, 날짜 스와이프 등)에 의해 변경된 월을 UI 상태에 반영
+        if (!_isSameMonth(providerMonth, _uiDisplayMonth) &&
+            !_monthAnimationController.isAnimating) {
+          _uiDisplayMonth = providerMonth;
+        }
+
+        // 이후 그리드/이웃 월 계산은 모두 UI 기준 월을 사용
+        final currentMonth = _uiDisplayMonth;
 
         // 현재 월 캘린더에 표시할 날짜 리스트 (6주 고정)
         final calendarDays = _generateCalendarDays(currentMonth);
@@ -1171,15 +1222,17 @@ class _CalendarWidgetState extends State<CalendarWidget>
 
                                         // 월 단위 이동
                                         // 이웃 월 (왼쪽으로 드래그 → 다음 달, 오른쪽으로 드래그 → 이전 달)
+                                        // UI 기준 월(_uiDisplayMonth)을 사용하여 애니메이션 중에도
+                                        // 안정적인 월/이웃 월 조합을 유지
                                         final neighborMonth = isDraggingToNext
                                             ? DateTime(
-                                                currentMonth.year,
-                                                currentMonth.month + 1,
+                                                _uiDisplayMonth.year,
+                                                _uiDisplayMonth.month + 1,
                                                 1,
                                               )
                                             : DateTime(
-                                                currentMonth.year,
-                                                currentMonth.month - 1,
+                                                _uiDisplayMonth.year,
+                                                _uiDisplayMonth.month - 1,
                                                 1,
                                               );
                                         final neighborDays =
