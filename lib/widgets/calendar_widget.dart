@@ -7,6 +7,7 @@ import 'package:flutter_calender/providers/category_provider.dart';
 import 'package:flutter_calender/providers/todo_provider.dart';
 import 'package:flutter_calender/utils/date_utils.dart' as korean_date;
 import 'package:flutter_calender/widgets/calendar_date_cell.dart';
+import 'package:flutter_calender/widgets/common/snackbar_helper.dart';
 import 'package:flutter_calender/widgets/todo_detail_dialog.dart';
 import 'package:flutter_calender/widgets/todo_meta_tags.dart';
 import 'package:provider/provider.dart';
@@ -196,29 +197,24 @@ class _CalendarWidgetState extends State<CalendarWidget>
 
       if (!mounted) return;
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$deletedCount개의 할일이 삭제되었습니다.'),
-          action: todoProvider.canUndo
-              ? SnackBarAction(
-                  label: '되돌리기',
-                  onPressed: () async {
-                    await todoProvider.undoLastDelete();
-                  },
-                )
-              : null,
-          duration: const Duration(seconds: 4),
-        ),
+      // 성공 메시지 표시 (되돌리기 액션 포함)
+      SnackbarHelper.showSuccess(
+        context,
+        '$deletedCount개의 할일이 삭제되었습니다.',
+        actionLabel: todoProvider.canUndo ? '되돌리기' : null,
+        onActionPressed: todoProvider.canUndo
+            ? () async {
+                await todoProvider.undoLastDelete();
+              }
+            : null,
       );
     } catch (e) {
       if (!mounted) return;
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('삭제 중 오류가 발생했습니다: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
+      // 에러 메시지 표시
+      SnackbarHelper.showError(
+        context,
+        '삭제 중 오류가 발생했습니다: ${e.toString()}',
       );
     }
   }

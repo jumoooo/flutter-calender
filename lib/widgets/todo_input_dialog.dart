@@ -6,6 +6,7 @@ import 'package:flutter_calender/models/todo.dart';
 import 'package:flutter_calender/providers/category_provider.dart';
 import 'package:flutter_calender/providers/todo_provider.dart';
 import 'package:flutter_calender/utils/date_utils.dart' as korean_date;
+import 'package:flutter_calender/widgets/common/snackbar_helper.dart';
 import 'package:flutter_calender/widgets/custom_date_picker_dialog.dart';
 import 'package:provider/provider.dart';
 
@@ -119,8 +120,8 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
           ],
         ),
         content: Text(
-          '현재 할일 개수가 ${currentCount}개입니다.\n'
-          '제한(${maxCount}개)에 가까워지고 있습니다.\n\n'
+          '현재 할일 개수가 $currentCount개입니다.\n'
+          '제한($maxCount개)에 가까워지고 있습니다.\n\n'
           '일부 할일을 완료하거나 삭제하는 것을 권장합니다.',
         ),
         actions: [
@@ -179,14 +180,9 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
         final errorMessage = e.toString().contains('할일 개수 제한')
             ? '할일 개수 제한(${provider.maxTodoCount ?? '제한 없음'}개)에 도달했습니다.\n일부 할일을 삭제한 후 다시 시도해주세요.'
             : '저장 중 오류가 발생했습니다.';
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+
+        // 에러 메시지 표시
+        SnackbarHelper.showError(context, errorMessage);
       }
     }
   }
@@ -274,22 +270,25 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
     final weekday = _selectedDate.weekday % 7;
     final isSunday = weekday == 0;
     final isSaturday = weekday == 6;
-    final weekdayLabel =
-        korean_date.KoreanDateUtils.getKoreanWeekday(_selectedDate);
-    final dateStr =
-        korean_date.KoreanDateUtils.formatKoreanDate(_selectedDate);
-    final lunarStr =
-        korean_date.KoreanDateUtils.getLunarDescription(_selectedDate);
+    final weekdayLabel = korean_date.KoreanDateUtils.getKoreanWeekday(
+      _selectedDate,
+    );
+    final dateStr = korean_date.KoreanDateUtils.formatKoreanDate(_selectedDate);
+    final lunarStr = korean_date.KoreanDateUtils.getLunarDescription(
+      _selectedDate,
+    );
 
     return Dialog(
       backgroundColor: cs.surface,
       insetPadding: AppConstants.dialogInsetPadding,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-          borderRadius: AppConstants.dialogBorderRadius),
+        borderRadius: AppConstants.dialogBorderRadius,
+      ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          minHeight: MediaQuery.of(context).size.height *
+          minHeight:
+              MediaQuery.of(context).size.height *
               AppConstants.dialogMinHeightRatio,
           maxHeight: MediaQuery.of(context).size.height * 0.88,
         ),
@@ -358,8 +357,9 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                           ),
                         ),
                         textInputAction: TextInputAction.next,
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? '제목을 입력해주세요' : null,
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? '제목을 입력해주세요'
+                            : null,
                       ),
 
                       const SizedBox(height: 14),
@@ -412,8 +412,8 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                                   color: isSunday
                                       ? Colors.red
                                       : isSaturday
-                                          ? Colors.blue
-                                          : cs.onSurface,
+                                      ? Colors.blue
+                                      : cs.onSurface,
                                 ),
                               ),
                               TextSpan(
@@ -452,37 +452,45 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                       const SizedBox(height: 10),
 
                       // ── 기한 선택 ─────────────────────────────────────
-                      Builder(builder: (context) {
-                        final isOverdue = _selectedDueDate != null &&
-                            _selectedDueDate!.isBefore(DateTime(
-                              DateTime.now().year,
-                              DateTime.now().month,
-                              DateTime.now().day,
-                            ));
-                        return _PickerRow(
-                          icon: Icons.flag_outlined,
-                          iconColor: isOverdue ? Colors.red : cs.primary,
-                          borderColor:
-                              isOverdue ? Colors.red.withAlpha(180) : null,
-                          onTap: _pickDueDate,
-                          trailingClear: _selectedDueDate != null
-                              ? () => setState(() => _selectedDueDate = null)
-                              : null,
-                          child: Text(
-                            _selectedDueDate != null
-                                ? korean_date.KoreanDateUtils.formatKoreanDate(
-                                    _selectedDueDate!)
-                                : '기한 없음',
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: isOverdue
-                                  ? Colors.red
-                                  : _selectedDueDate != null
-                                      ? cs.onSurface
-                                      : cs.onSurfaceVariant,
+                      Builder(
+                        builder: (context) {
+                          final isOverdue =
+                              _selectedDueDate != null &&
+                              _selectedDueDate!.isBefore(
+                                DateTime(
+                                  DateTime.now().year,
+                                  DateTime.now().month,
+                                  DateTime.now().day,
+                                ),
+                              );
+                          return _PickerRow(
+                            icon: Icons.flag_outlined,
+                            iconColor: isOverdue ? Colors.red : cs.primary,
+                            borderColor: isOverdue
+                                ? Colors.red.withAlpha(180)
+                                : null,
+                            onTap: _pickDueDate,
+                            trailingClear: _selectedDueDate != null
+                                ? () => setState(() => _selectedDueDate = null)
+                                : null,
+                            child: Text(
+                              _selectedDueDate != null
+                                  ? korean_date
+                                        .KoreanDateUtils.formatKoreanDate(
+                                      _selectedDueDate!,
+                                    )
+                                  : '기한 없음',
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: isOverdue
+                                    ? Colors.red
+                                    : _selectedDueDate != null
+                                    ? cs.onSurface
+                                    : cs.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                        );
-                      }),
+                          );
+                        },
+                      ),
 
                       const SizedBox(height: 18),
 
@@ -503,18 +511,19 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                           final color = PriorityColors.getColor(p);
                           return Expanded(
                             child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 3,
+                              ),
                               child: MouseRegion(
                                 cursor: SystemMouseCursors.click,
                                 child: GestureDetector(
                                   onTap: () =>
                                       setState(() => _selectedPriority = p),
                                   child: AnimatedContainer(
-                                    duration:
-                                        const Duration(milliseconds: 150),
+                                    duration: const Duration(milliseconds: 150),
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
+                                      vertical: 10,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: isSelected
                                           ? color.withAlpha(40)
@@ -523,8 +532,7 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                                       border: Border.all(
                                         color: isSelected
                                             ? color
-                                            : cs.outlineVariant
-                                                .withAlpha(80),
+                                            : cs.outlineVariant.withAlpha(80),
                                         width: isSelected ? 2 : 0.8,
                                       ),
                                     ),
@@ -583,8 +591,8 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                                 label: '없음',
                                 isSelected: _selectedCategoryId == null,
                                 color: cs.outlineVariant,
-                                onTap: () => setState(
-                                    () => _selectedCategoryId = null),
+                                onTap: () =>
+                                    setState(() => _selectedCategoryId = null),
                               ),
                               // 카테고리 칩 목록
                               ...categoryProvider.categories.map(
@@ -594,7 +602,8 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                                   isSelected: _selectedCategoryId == cat.id,
                                   color: cat.color,
                                   onTap: () => setState(
-                                      () => _selectedCategoryId = cat.id),
+                                    () => _selectedCategoryId = cat.id,
+                                  ),
                                 ),
                               ),
                             ],
@@ -621,7 +630,9 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                       style: TextButton.styleFrom(
                         foregroundColor: cs.error,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                     ),
                   const Spacer(),
@@ -630,7 +641,9 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                     onPressed: () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                     ),
                     child: const Text('취소'),
                   ),
@@ -642,7 +655,9 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                       backgroundColor: priorityColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 8),
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -689,10 +704,7 @@ class _PickerRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          border: Border.all(
-            color: borderColor ?? cs.outlineVariant,
-            width: 1,
-          ),
+          border: Border.all(color: borderColor ?? cs.outlineVariant, width: 1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -703,11 +715,7 @@ class _PickerRow extends StatelessWidget {
             if (trailingClear != null)
               GestureDetector(
                 onTap: trailingClear,
-                child: Icon(
-                  Icons.clear,
-                  size: 16,
-                  color: cs.onSurfaceVariant,
-                ),
+                child: Icon(Icons.clear, size: 16, color: cs.onSurfaceVariant),
               )
             else
               Icon(
@@ -752,7 +760,9 @@ class _CategoryChip extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? color.withAlpha(36) : cs.surfaceContainerHighest,
+            color: isSelected
+                ? color.withAlpha(36)
+                : cs.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
               color: isSelected ? color : cs.outlineVariant.withAlpha(80),
@@ -774,8 +784,7 @@ class _CategoryChip extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight:
-                      isSelected ? FontWeight.w700 : FontWeight.w400,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                   color: isSelected ? color : cs.onSurfaceVariant,
                 ),
               ),

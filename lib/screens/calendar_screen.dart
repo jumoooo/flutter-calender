@@ -8,6 +8,7 @@ import 'package:flutter_calender/screens/search_result_screen.dart';
 import 'package:flutter_calender/screens/settings_screen.dart';
 import 'package:flutter_calender/utils/date_utils.dart' as korean_date;
 import 'package:flutter_calender/widgets/calendar_widget.dart';
+import 'package:flutter_calender/widgets/common/snackbar_helper.dart';
 import 'package:flutter_calender/widgets/todo_input_dialog.dart';
 import 'package:provider/provider.dart';
 
@@ -31,19 +32,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final todoProvider = Provider.of<TodoProvider>(context, listen: false);
     _errorSubscription = todoProvider.errorStream.listen((error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error.message),
-            backgroundColor: Colors.red[600],
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: '확인',
-              textColor: Colors.white,
-              onPressed: () {
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              },
-            ),
-          ),
+        // 에러 메시지 표시 (확인 버튼 포함)
+        SnackbarHelper.showErrorWithConfirm(
+          context,
+          error.message,
+          durationSeconds: 4,
         );
       }
     });

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_calender/models/category.dart';
 import 'package:flutter_calender/providers/category_provider.dart';
+import 'package:flutter_calender/widgets/common/snackbar_helper.dart';
 import 'package:provider/provider.dart';
 
 /// 카테고리 관리 화면
@@ -68,8 +69,10 @@ class CategoryScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('카테고리 삭제'),
-        content: Text('"${category.name}" 카테고리를 삭제하시겠습니까?\n'
-            '해당 카테고리가 지정된 할일은 카테고리가 없어집니다.'),
+        content: Text(
+          '"${category.name}" 카테고리를 삭제하시겠습니까?\n'
+          '해당 카테고리가 지정된 할일은 카테고리가 없어집니다.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -78,8 +81,10 @@ class CategoryScreen extends StatelessWidget {
           TextButton(
             onPressed: () async {
               Navigator.of(ctx).pop();
-              final provider =
-                  Provider.of<CategoryProvider>(context, listen: false);
+              final provider = Provider.of<CategoryProvider>(
+                context,
+                listen: false,
+              );
               await provider.deleteCategory(category.id);
             },
             child: const Text('삭제', style: TextStyle(color: Colors.red)),
@@ -124,7 +129,11 @@ class _CategoryListTile extends StatelessWidget {
               onPressed: onEdit,
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+              icon: const Icon(
+                Icons.delete_outline,
+                size: 20,
+                color: Colors.red,
+              ),
               tooltip: '삭제',
               onPressed: onDelete,
             ),
@@ -160,8 +169,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
       _selectedIcon = widget.existing!.icon;
     } else {
       _selectedColor = CategoryColors.palette.first;
-      _selectedIcon =
-          (CategoryIcons.list.first['icon'] as IconData);
+      _selectedIcon = (CategoryIcons.list.first['icon'] as IconData);
     }
   }
 
@@ -200,7 +208,8 @@ class _CategoryDialogState extends State<_CategoryDialog> {
               spacing: 8,
               runSpacing: 8,
               children: CategoryColors.palette.map((color) {
-                final isSelected = _selectedColor.toARGB32() == color.toARGB32();
+                final isSelected =
+                    _selectedColor.toARGB32() == color.toARGB32();
                 return GestureDetector(
                   onTap: () => setState(() => _selectedColor = color),
                   child: Container(
@@ -266,10 +275,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('취소'),
         ),
-        FilledButton(
-          onPressed: _save,
-          child: Text(isEdit ? '수정' : '추가'),
-        ),
+        FilledButton(onPressed: _save, child: Text(isEdit ? '수정' : '추가')),
       ],
     );
   }
@@ -277,17 +283,19 @@ class _CategoryDialogState extends State<_CategoryDialog> {
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('카테고리 이름을 입력해주세요.')),
-      );
+      // 검증 메시지 표시
+      SnackbarHelper.showInfo(context, '카테고리 이름을 입력해주세요.');
       return;
     }
 
-    final categoryProvider =
-        Provider.of<CategoryProvider>(context, listen: false);
+    final categoryProvider = Provider.of<CategoryProvider>(
+      context,
+      listen: false,
+    );
 
     final category = Category(
-      id: widget.existing?.id ??
+      id:
+          widget.existing?.id ??
           DateTime.now().millisecondsSinceEpoch.toString(),
       name: name,
       colorValue: _selectedColor.toARGB32(),
@@ -303,9 +311,8 @@ class _CategoryDialogState extends State<_CategoryDialog> {
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('저장 중 오류가 발생했습니다.')),
-        );
+        // 에러 메시지 표시
+        SnackbarHelper.showError(context, '저장 중 오류가 발생했습니다.');
       }
     }
   }
