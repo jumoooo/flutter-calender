@@ -27,7 +27,29 @@ class Category {
   Color get color => Color(colorValue);
 
   /// IconData 객체로 반환
-  IconData get icon => IconData(iconCode, fontFamily: 'MaterialIcons');
+  ///
+  /// Web 빌드시 아이콘 폰트 트리 셰이킹을 위해
+  /// **반드시 const IconData (Icons.*)** 만 사용해야 합니다.
+  /// 따라서 동적 IconData 생성 대신, 카테고리 id에 따라
+  /// 미리 정의된 Icons.* 상수를 반환하도록 합니다.
+  IconData get icon {
+    switch (id) {
+      case 'work':
+        return Icons.work_outline;
+      case 'personal':
+        return Icons.person_outline;
+      case 'shopping':
+        return Icons.shopping_cart_outlined;
+      case 'health':
+        return Icons.favorite_border;
+      case 'study':
+        return Icons.school_outlined;
+      default:
+        // 예기치 않은 id의 경우에도 트리 셰이킹을 유지하기 위해
+        // 고정된 아이콘 상수를 반환합니다.
+        return Icons.label_outline;
+    }
+  }
 
   /// 불변 객체를 위한 copyWith
   Category copyWith({
