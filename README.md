@@ -210,6 +210,20 @@ flutter pub get
 flutter run
 ```
 
+## 🌐 웹 배포
+
+이 프로젝트는 GitHub Pages로 배포할 수 있습니다.
+
+**배포된 웹 앱**: [https://jumoooo.github.io/flutter-calender/](https://jumoooo.github.io/flutter-calender/)
+
+### 배포 방법
+
+**GitHub Actions 자동 배포만 사용합니다.**
+
+1. GitHub 저장소 → `Settings` → `Pages`
+2. **Source: `GitHub Actions`** 선택
+3. 이 저장소의 `main` 브랜치에 push 하면 자동으로 빌드 및 배포됩니다.
+
 ## 📚 참고 자료
 
 - [Flutter 공식 문서](https://flutter.dev/docs)
