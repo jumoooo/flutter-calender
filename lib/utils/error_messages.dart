@@ -48,6 +48,10 @@ class ErrorMessages {
   /// 할일 날짜 변경 실패
   static const String todoMoveFailed = 
       '할일 날짜를 변경할 수 없습니다.\n다시 시도해주세요.';
+  
+  /// 할일 개수 제한 초과
+  static const String todoLimitExceeded = 
+      '할일 개수 제한에 도달했습니다.\n일부 할일을 삭제한 후 다시 시도해주세요.';
 
   // ========== 데이터 파싱 관련 에러 ==========
   
@@ -101,6 +105,8 @@ class ErrorMessages {
         return todoToggleFailed;
       case 'todo_move_failed':
         return todoMoveFailed;
+      case 'todo_limit_exceeded':
+        return todoLimitExceeded;
       case 'json_parse_failed':
         return jsonParseFailed;
       case 'date_parse_failed':
@@ -183,6 +189,9 @@ enum AppErrorType {
   /// 할일 날짜 변경 실패
   todoMoveFailed,
   
+  /// 할일 개수 제한 초과
+  todoLimitExceeded,
+  
   /// JSON 파싱 실패
   jsonParseFailed,
   
@@ -251,6 +260,9 @@ class AppError {
         break;
       case AppErrorType.todoMoveFailed:
         message = ErrorMessages.todoMoveFailed;
+        break;
+      case AppErrorType.todoLimitExceeded:
+        message = ErrorMessages.todoLimitExceeded;
         break;
       case AppErrorType.jsonParseFailed:
         message = ErrorMessages.jsonParseFailed;
