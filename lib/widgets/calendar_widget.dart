@@ -62,6 +62,9 @@ class _CalendarWidgetState extends State<CalendarWidget>
   /// 애니메이션 종료 시 목표 오프셋 (양수: 이전 달, 음수: 다음 달)
   double _monthAnimationEndOffset = 0;
 
+  /// 월 애니메이션 시작 오프셋 (드래그 중이던 위치에서 이어서 슬라이드하기 위함)
+  double _monthAnimationStartOffset = 0;
+
   /// 선택 모드 활성화 여부
   bool _isSelectionMode = false;
 
@@ -82,25 +85,36 @@ class _CalendarWidgetState extends State<CalendarWidget>
     );
 
     _monthCurvedAnimation.addListener(() {
-      // curve가 적용된 값을 목표 오프셋에 곱해 현재 오프셋으로 사용
+      // curve가 적용된 값을 시작/종료 오프셋 사이에 보간하여 현재 오프셋으로 사용
+      //
+      // - 버튼 클릭: 0 → ±뷰포트 폭
+      // - 스와이프: 현재 드래그 위치 → ±뷰포트 폭 또는 0 (되돌리기)
       setState(() {
         _monthDragOffset =
-            _monthAnimationEndOffset * _monthCurvedAnimation.value;
+            _monthAnimationStartOffset +
+            (_monthAnimationEndOffset - _monthAnimationStartOffset) *
+                _monthCurvedAnimation.value;
       });
     });
 
     _monthCurvedAnimation.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
         // 애니메이션이 끝난 시점에 실제 월 변경 처리
+        // - endOffset == 0 인 경우: 단순 "되돌리기" 이므로 월 변경 없음
+        // - endOffset < 0: 다음 달
+        // - endOffset > 0: 이전 달
         final calendarProvider = Provider.of<CalendarProvider>(
           context,
           listen: false,
         );
 
-        if (_monthAnimationEndOffset < 0) {
+        // float 비교용 작은 epsilon
+        const double epsilon = 0.5;
+
+        if (_monthAnimationEndOffset < -epsilon) {
           // 화면이 왼쪽으로 이동 → 다음 달로 넘어가는 효과
           await calendarProvider.nextMonth();
-        } else if (_monthAnimationEndOffset > 0) {
+        } else if (_monthAnimationEndOffset > epsilon) {
           // 화면이 오른쪽으로 이동 → 이전 달로 넘어가는 효과
           await calendarProvider.previousMonth();
         }
@@ -239,8 +253,65 @@ class _CalendarWidgetState extends State<CalendarWidget>
       return;
     }
 
-    // 다음 달: 왼쪽으로 슬라이드, 이전 달: 오른쪽으로 슬라이드
+    // 버튼 클릭 시에는 항상 0 → ±뷰포트 폭으로 애니메이션
+    _monthAnimationStartOffset = 0;
     _monthAnimationEndOffset = toNext
+        ? -_monthViewportWidth
+        : _monthViewportWidth;
+    _monthAnimationController.forward(from: 0);
+  }
+
+  /// 상단 달력에서 월 단위 스와이프가 끝났을 때 처리
+  ///
+  /// - 임계값 미만: 현재 위치 → 0 으로 부드럽게 되돌리기 (월 변경 없음)
+  /// - 임계값 이상: 현재 위치 → ±뷰포트 폭까지 슬라이드 후 월 변경
+  void _handleMonthHorizontalDragEnd() {
+    const threshold = 60.0; // 드래그 판정 임계값 (px)
+
+    // 이미 애니메이션 중이면 추가 처리하지 않음
+    if (_monthAnimationController.isAnimating) {
+      return;
+    }
+
+    final dragOffset = _monthDragOffset;
+
+    // 뷰포트 정보를 아직 모르면 기존 로직(즉시 전환) 유지
+    if (_monthViewportWidth <= 0) {
+      if (dragOffset.abs() < threshold) {
+        setState(() {
+          _monthDragOffset = 0;
+        });
+        return;
+      }
+
+      final calendarProvider = Provider.of<CalendarProvider>(
+        context,
+        listen: false,
+      );
+
+      if (dragOffset < 0) {
+        calendarProvider.nextMonth();
+      } else {
+        calendarProvider.previousMonth();
+      }
+
+      setState(() {
+        _monthDragOffset = 0;
+      });
+      return;
+    }
+
+    // 충분히 움직이지 않았으면 0으로 되돌리는 애니메이션만 수행 (월 변경 없음)
+    if (dragOffset.abs() < threshold) {
+      _monthAnimationStartOffset = dragOffset;
+      _monthAnimationEndOffset = 0;
+      _monthAnimationController.forward(from: 0);
+      return;
+    }
+
+    // 왼쪽으로 스와이프 → 다음 달, 오른쪽 스와이프 → 이전 달
+    _monthAnimationStartOffset = dragOffset;
+    _monthAnimationEndOffset = dragOffset < 0
         ? -_monthViewportWidth
         : _monthViewportWidth;
     _monthAnimationController.forward(from: 0);
@@ -1083,13 +1154,7 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                     },
                                     onHorizontalDragEnd: (details) {
                                       // 달력만 모드와 기본 모드 모두 월 단위 이동
-                                      _handleHorizontalDragEnd(
-                                        offset: _monthDragOffset,
-                                        onSwipeLeft: () =>
-                                            calendarProvider.nextMonth(),
-                                        onSwipeRight: () =>
-                                            calendarProvider.previousMonth(),
-                                      );
+                                      _handleMonthHorizontalDragEnd();
                                     },
                                     child: LayoutBuilder(
                                       builder: (context, constraints) {
