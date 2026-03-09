@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_calender/constants/app_config.dart';
 import 'package:flutter_calender/models/todo.dart';
 import 'package:flutter_calender/utils/error_messages.dart';
 import 'package:flutter_calender/utils/hive_migration.dart';
@@ -31,6 +32,13 @@ class TodoProvider with ChangeNotifier {
   /// 완료된 할일 숨기기 여부
   bool _hideCompleted = false;
 
+  /// 할일 개수 제한 (null이면 제한 없음)
+  int? _maxTodoCount = AppConfig.defaultMaxTodoCount;
+
+  /// 경고 스트림 컨트롤러 (할일 개수 경고용)
+  final StreamController<int> _warningController =
+      StreamController<int>.broadcast();
+
   // ─── Getters ────────────────────────────────────────────────────────────────
 
   /// 할일 목록 getter (읽기 전용)
@@ -45,12 +53,27 @@ class TodoProvider with ChangeNotifier {
   /// 되돌릴 수 있는 삭제가 있는지 여부
   bool get canUndo => _undoStack.isNotEmpty;
 
+  /// 할일 개수 제한
+  int? get maxTodoCount => _maxTodoCount;
+
+  /// 할일 개수 제한 설정
+  void setMaxTodoCount(int? count) {
+    _maxTodoCount = count;
+    notifyListeners();
+  }
+
+  /// 현재 할일 개수
+  int get todoCount => _todos.length;
+
   /// 에러 스트림 컨트롤러
   final StreamController<AppError> _errorController =
       StreamController<AppError>.broadcast();
 
   /// 에러 스트림 (읽기 전용)
   Stream<AppError> get errorStream => _errorController.stream;
+
+  /// 경고 스트림 (읽기 전용) - 할일 개수 경고용
+  Stream<int> get warningStream => _warningController.stream;
 
   // ─── 인덱스 유틸리티 ────────────────────────────────────────────────────────
 
@@ -185,8 +208,12 @@ class TodoProvider with ChangeNotifier {
           return a.dueDate!.compareTo(b.dueDate!);
         });
       case TodoSortType.byCreation:
-        // 추가 순 유지 (정렬 없음)
-        break;
+        // ID를 숫자로 변환하여 역순 정렬 (큰 ID = 최신 등록 = 위에)
+        todos.sort((a, b) {
+          final aId = int.tryParse(a.id) ?? 0;
+          final bId = int.tryParse(b.id) ?? 0;
+          return bId.compareTo(aId); // 역순 정렬 (최신이 위로)
+        });
       case TodoSortType.byTitle:
         todos.sort((a, b) => a.title.compareTo(b.title));
     }
@@ -195,12 +222,31 @@ class TodoProvider with ChangeNotifier {
   }
 
   /// 할일 추가
+  /// 
+  /// 할일 개수 제한이 설정되어 있고 초과하면 예외를 발생시킵니다.
+  /// 경고 임계값에 도달하면 경고 스트림에 알림을 보냅니다.
   Future<void> addTodo(Todo todo) async {
+    // 할일 개수 제한 체크
+    if (_maxTodoCount != null && _todos.length >= _maxTodoCount!) {
+      final error = AppError.fromType(AppErrorType.todoLimitExceeded);
+      _errorController.add(error);
+      throw Exception('할일 개수 제한($_maxTodoCount개)에 도달했습니다.');
+    }
+
     try {
       _todos.add(todo);
       _addToIndex(todo);
       await _saveTodo(todo);
       notifyListeners();
+
+      // 경고 임계값 체크 (제한의 80% 또는 설정된 임계값)
+      final warningThreshold = AppConfig.todoCountWarningThreshold;
+      if (warningThreshold != null &&
+          _maxTodoCount != null &&
+          _todos.length >= warningThreshold &&
+          _todos.length < _maxTodoCount!) {
+        _warningController.add(_todos.length);
+      }
     } catch (e) {
       _todos.remove(todo);
       _removeFromIndex(todo);
@@ -247,16 +293,69 @@ class TodoProvider with ChangeNotifier {
       _removeFromIndex(todoToDelete);
       await _deleteTodoFromBox(id);
 
-      // Undo 스택에 추가 (최대 5개)
+      // Undo 스택에 추가 (최대 개수 제한)
       if (addToUndoStack) {
         _undoStack.add(todoToDelete);
-        if (_undoStack.length > 5) _undoStack.removeAt(0);
+        if (_undoStack.length > AppConfig.maxUndoStackSize) {
+          _undoStack.removeAt(0);
+        }
       }
 
       notifyListeners();
     } catch (e) {
       _todos.insert(index, todoToDelete);
       _addToIndex(todoToDelete);
+      final error = AppError.fromType(AppErrorType.todoDeleteFailed,
+          exception: e is Exception ? e : null);
+      _errorController.add(error);
+      rethrow;
+    }
+  }
+
+  /// 여러 할일 일괄 삭제
+  ///
+  /// [ids] 삭제할 할일 ID 목록
+  /// [addToUndoStack] true이면 각 삭제를 undo 스택에 추가 (기본값: true)
+  ///
+  /// 반환값: 성공적으로 삭제된 할일 개수
+  Future<int> deleteTodos(List<String> ids, {bool addToUndoStack = true}) async {
+    if (ids.isEmpty) return 0;
+
+    final deletedTodos = <Todo>[];
+    final deletedIndices = <int>[];
+
+    try {
+      // 역순으로 삭제하여 인덱스 문제 방지
+      for (int i = _todos.length - 1; i >= 0; i--) {
+        if (ids.contains(_todos[i].id)) {
+          deletedTodos.add(_todos[i]);
+          deletedIndices.add(i);
+          _removeFromIndex(_todos[i]);
+          await _deleteTodoFromBox(_todos[i].id);
+          _todos.removeAt(i);
+        }
+      }
+
+      // Undo 스택에 추가 (역순으로 추가하여 나중에 복원 시 올바른 순서 유지)
+      if (addToUndoStack && deletedTodos.isNotEmpty) {
+        for (final todo in deletedTodos.reversed) {
+          _undoStack.add(todo);
+          if (_undoStack.length > AppConfig.maxUndoStackSize) {
+            _undoStack.removeAt(0);
+          }
+        }
+      }
+
+      notifyListeners();
+      return deletedTodos.length;
+    } catch (e) {
+      // 롤백: 삭제된 항목들을 원래 위치에 복원
+      for (int i = 0; i < deletedTodos.length; i++) {
+        final index = deletedIndices[i];
+        _todos.insert(index, deletedTodos[i]);
+        _addToIndex(deletedTodos[i]);
+      }
+
       final error = AppError.fromType(AppErrorType.todoDeleteFailed,
           exception: e is Exception ? e : null);
       _errorController.add(error);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_calender/constants/app_constants.dart';
 import 'package:flutter_calender/constants/priority_colors.dart';
 import 'package:flutter_calender/models/todo.dart';
 import 'package:flutter_calender/providers/calendar_provider.dart';
@@ -60,12 +61,18 @@ class _CalendarWidgetState extends State<CalendarWidget>
   /// 애니메이션 종료 시 목표 오프셋 (양수: 이전 달, 음수: 다음 달)
   double _monthAnimationEndOffset = 0;
 
+  /// 선택 모드 활성화 여부
+  bool _isSelectionMode = false;
+
+  /// 선택된 할일 ID 목록
+  Set<String> _selectedTodoIds = {};
+
   @override
   void initState() {
     super.initState();
     _monthAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: AppConstants.animationDuration,
     );
 
     _monthCurvedAnimation = CurvedAnimation(
@@ -111,6 +118,109 @@ class _CalendarWidgetState extends State<CalendarWidget>
   void dispose() {
     _monthAnimationController.dispose();
     super.dispose();
+  }
+
+  /// 선택 모드 토글
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedTodoIds.clear();
+      }
+    });
+  }
+
+  /// 할일 선택/해제 토글
+  void _toggleTodoSelection(String todoId) {
+    setState(() {
+      if (_selectedTodoIds.contains(todoId)) {
+        _selectedTodoIds.remove(todoId);
+      } else {
+        _selectedTodoIds.add(todoId);
+      }
+    });
+  }
+
+  /// 전체 선택/해제 토글
+  void _toggleSelectAll(List<Todo> todos) {
+    setState(() {
+      if (_selectedTodoIds.length == todos.length) {
+        _selectedTodoIds.clear();
+      } else {
+        _selectedTodoIds = todos.map((t) => t.id).toSet();
+      }
+    });
+  }
+
+  /// 일괄 삭제 확인 다이얼로그 표시
+  Future<void> _showBatchDeleteDialog(
+    BuildContext context,
+    TodoProvider todoProvider,
+  ) async {
+    final count = _selectedTodoIds.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('일괄 삭제'),
+        content: Text('선택한 $count개의 할일을 삭제하시겠어요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    try {
+      final deletedCount = await todoProvider.deleteTodos(
+        _selectedTodoIds.toList(),
+      );
+
+      if (!mounted) return;
+      
+      setState(() {
+        _selectedTodoIds.clear();
+        _isSelectionMode = false;
+      });
+
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$deletedCount개의 할일이 삭제되었습니다.'),
+          action: todoProvider.canUndo
+              ? SnackBarAction(
+                  label: '되돌리기',
+                  onPressed: () async {
+                    await todoProvider.undoLastDelete();
+                  },
+                )
+              : null,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('삭제 중 오류가 발생했습니다: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   /// 상단 달력을 버튼으로 월 전환할 때 사용할 애니메이션 헬퍼
@@ -551,8 +661,52 @@ class _CalendarWidgetState extends State<CalendarWidget>
                     ],
                   ),
                 ),
-                // ── 정렬 + 필터 컨트롤 ──────────────────────────────────────
-                _SortFilterButtons(todoProvider: todoProvider),
+                // ── 선택 모드 진입 버튼 (선택 모드가 아닐 때만 표시) ─────────────
+                if (!_isSelectionMode)
+                  IconButton(
+                    icon: const Icon(Icons.check_box_outline_blank),
+                    tooltip: '선택 모드',
+                    onPressed: _toggleSelectionMode,
+                  )
+                else
+                  // ── 선택 모드 헤더 (선택 개수, 전체 선택, 종료 버튼) ─────────
+                  Row(
+                    children: [
+                      Text(
+                        '${_selectedTodoIds.length}개 선택',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      // 전체 선택/해제 버튼
+                      IconButton(
+                        icon: Icon(
+                          _selectedTodoIds.length == todos.length
+                              ? Icons.check_box
+                              : Icons.check_box_outline_blank,
+                        ),
+                        tooltip: '전체 선택/해제',
+                        onPressed: () => _toggleSelectAll(todos),
+                        iconSize: 20,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const SizedBox(width: 4),
+                      // 선택 모드 종료 버튼
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        tooltip: '선택 모드 종료',
+                        onPressed: _toggleSelectionMode,
+                        iconSize: 20,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                // ── 정렬 + 필터 컨트롤 (선택 모드가 아닐 때만 표시) ─────────────
+                if (!_isSelectionMode)
+                  _SortFilterButtons(todoProvider: todoProvider),
               ],
             ),
 
@@ -574,23 +728,45 @@ class _CalendarWidgetState extends State<CalendarWidget>
                   itemCount: todos.length,
                   itemBuilder: (context, index) {
                     final todo = todos[index];
+                    final isSelected = _isSelectionMode && _selectedTodoIds.contains(todo.id);
                     return Consumer<CategoryProvider>(
                       builder: (context, categoryProvider, _) {
                         final category =
                             categoryProvider.getById(todo.categoryId);
                         return InkWell(
-                          onTap: () => showTodoDetailDialog(context, todo),
+                          onTap: _isSelectionMode
+                              ? () => _toggleTodoSelection(todo.id)
+                              : () => showTodoDetailDialog(context, todo),
                           borderRadius: BorderRadius.circular(8),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 6,
-                              horizontal: 2,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                _priorityIcon(todo.priority),
-                                const SizedBox(width: 8),
+                          child: Container(
+                            // 선택 모드일 때 배경색 변경
+                            decoration: isSelected
+                                ? BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer
+                                        .withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(8),
+                                  )
+                                : null,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 6,
+                                horizontal: 2,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // 체크박스 (선택 모드일 때만 표시)
+                                  if (_isSelectionMode) ...[
+                                    Checkbox(
+                                      value: isSelected,
+                                      onChanged: (_) => _toggleTodoSelection(todo.id),
+                                    ),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  _priorityIcon(todo.priority),
+                                  const SizedBox(width: 8),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -635,11 +811,43 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                   ),
                               ],
                             ),
+                            ),
                           ),
                         );
                       },
                     );
                   },
+                ),
+              ),
+            // ── 일괄 삭제 버튼 (선택 모드이고 선택된 항목이 있을 때만 표시) ─────
+            if (_isSelectionMode && _selectedTodoIds.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  border: Border(
+                    top: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${_selectedTodoIds.length}개 선택됨',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _showBatchDeleteDialog(context, todoProvider),
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      label: const Text('일괄 삭제'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],
@@ -984,18 +1192,10 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                                   .KoreanDateUtils.getLunarDescription(
                                                 selectedDate,
                                               );
+                                          // getTodosByDate()가 이미 정렬을 적용하므로 추가 정렬 불필요
                                           final currentTodos =
-                                              List<Todo>.from(
-                                                todoProvider.getTodosByDate(
-                                                  selectedDate,
-                                                ),
-                                              )..sort(
-                                                (a, b) =>
-                                                    _priorityRank(
-                                                      a.priority,
-                                                    ).compareTo(
-                                                      _priorityRank(b.priority),
-                                                    ),
+                                              todoProvider.getTodosByDate(
+                                                selectedDate,
                                               );
 
                                           // 이웃 날짜 (왼쪽으로 드래그 → 다음 날짜, 오른쪽으로 드래그 → 이전 날짜)
@@ -1018,18 +1218,10 @@ class _CalendarWidgetState extends State<CalendarWidget>
                                                   .KoreanDateUtils.getLunarDescription(
                                                 neighborDate,
                                               );
+                                          // getTodosByDate()가 이미 정렬을 적용하므로 추가 정렬 불필요
                                           final neighborTodos =
-                                              List<Todo>.from(
-                                                todoProvider.getTodosByDate(
-                                                  neighborDate,
-                                                ),
-                                              )..sort(
-                                                (a, b) =>
-                                                    _priorityRank(
-                                                      a.priority,
-                                                    ).compareTo(
-                                                      _priorityRank(b.priority),
-                                                    ),
+                                              todoProvider.getTodosByDate(
+                                                neighborDate,
                                               );
 
                                           return Container(
@@ -1383,22 +1575,6 @@ class _CalendarSkeleton extends StatelessWidget {
         ),
       ],
     );
-  }
-}
-
-/// 우선순위 정렬용 랭크 값
-int _priorityRank(TodoPriority priority) {
-  switch (priority) {
-    case TodoPriority.veryHigh:
-      return 0; // 가장 높은 우선순위
-    case TodoPriority.high:
-      return 1;
-    case TodoPriority.normal:
-      return 2;
-    case TodoPriority.low:
-      return 3;
-    case TodoPriority.veryLow:
-      return 4;
   }
 }
 

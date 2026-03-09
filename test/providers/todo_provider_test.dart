@@ -223,5 +223,196 @@ void main() {
         expect(provider.todos.length, 0);
       });
     });
+
+    // ─── 할일 개수 제한 경고 테스트 ─────────────────────────────────────
+    group('할일 개수 제한 경고 테스트', () {
+      test('기본 제한값 확인', () {
+        // Given: 새 Provider
+        // When: 제한값 확인
+        // Then: 기본값이 100개인지 확인
+        expect(provider.maxTodoCount, 100);
+      });
+
+      test('제한값 설정 및 조회', () {
+        // Given: 새 Provider
+        // When: 제한값을 50으로 설정
+        provider.setMaxTodoCount(50);
+        // Then: 제한값이 50으로 변경되었는지 확인
+        expect(provider.maxTodoCount, 50);
+
+        // When: 제한값을 null로 설정 (제한 없음)
+        provider.setMaxTodoCount(null);
+        // Then: 제한값이 null인지 확인
+        expect(provider.maxTodoCount, null);
+      });
+
+      test('제한 초과 시 할일 추가 실패', () async {
+        // Given: 제한값을 5로 설정하고 5개의 할일 추가
+        provider.setMaxTodoCount(5);
+        for (int i = 0; i < 5; i++) {
+          await provider.addTodo(Todo(
+            id: 'todo_$i',
+            title: '할일 $i',
+            date: DateTime(2026, 3, 15),
+          ));
+        }
+        expect(provider.todoCount, 5);
+
+        // When: 6번째 할일 추가 시도
+        // Then: 예외가 발생하고 할일이 추가되지 않아야 함
+        expect(
+          () => provider.addTodo(Todo(
+            id: 'todo_6',
+            title: '할일 6',
+            date: DateTime(2026, 3, 15),
+          )),
+          throwsException,
+        );
+        expect(provider.todoCount, 5); // 여전히 5개
+      });
+
+      test('경고 임계값 도달 시 경고 스트림 알림', () async {
+        // Given: 제한값을 100으로 설정 (기본값)
+        provider.setMaxTodoCount(100);
+        // 경고 임계값은 AppConfig.todoCountWarningThreshold = 80
+
+        bool warningReceived = false;
+        final subscription = provider.warningStream.listen((count) {
+          warningReceived = true;
+          expect(count, greaterThanOrEqualTo(80));
+        });
+
+        // When: 80개의 할일 추가 (경고 임계값 도달)
+        for (int i = 0; i < 80; i++) {
+          await provider.addTodo(Todo(
+            id: 'todo_$i',
+            title: '할일 $i',
+            date: DateTime(2026, 3, 15),
+          ));
+        }
+
+        // Then: 경고 스트림에 알림이 전송되었는지 확인
+        // 약간의 지연을 주어 스트림이 처리되도록 함
+        await Future.delayed(const Duration(milliseconds: 100));
+        expect(warningReceived, true);
+        await subscription.cancel();
+      });
+
+      test('제한 없음 설정 시 무제한 추가 가능', () async {
+        // Given: 제한값을 null로 설정
+        provider.setMaxTodoCount(null);
+
+        // When: 많은 할일 추가 (예: 200개)
+        for (int i = 0; i < 200; i++) {
+          await provider.addTodo(Todo(
+            id: 'todo_$i',
+            title: '할일 $i',
+            date: DateTime(2026, 3, 15),
+          ));
+        }
+
+        // Then: 모든 할일이 추가되었는지 확인
+        expect(provider.todoCount, 200);
+      });
+
+      test('현재 할일 개수 조회', () async {
+        // Given: 할일이 없는 상태
+        expect(provider.todoCount, 0);
+
+        // When: 3개의 할일 추가
+        for (int i = 0; i < 3; i++) {
+          await provider.addTodo(Todo(
+            id: 'todo_$i',
+            title: '할일 $i',
+            date: DateTime(2026, 3, 15),
+          ));
+        }
+
+        // Then: 할일 개수가 3개인지 확인
+        expect(provider.todoCount, 3);
+      });
+    });
+
+    group('일괄 삭제 테스트', () {
+      test('여러 할일 일괄 삭제 성공', () async {
+        // Given: 5개의 할일 추가
+        final todoIds = <String>[];
+        for (int i = 0; i < 5; i++) {
+          final todo = Todo(
+            id: 'todo_$i',
+            title: '할일 $i',
+            date: DateTime(2026, 3, 15),
+          );
+          await provider.addTodo(todo);
+          todoIds.add(todo.id);
+        }
+        expect(provider.todoCount, 5);
+
+        // When: 3개의 할일 일괄 삭제
+        final deletedCount = await provider.deleteTodos(
+          todoIds.sublist(0, 3),
+        );
+
+        // Then: 삭제된 개수 확인
+        expect(deletedCount, 3);
+        expect(provider.todoCount, 2);
+      });
+
+      test('일괄 삭제 후 undo 스택 확인', () async {
+        // Given: 3개의 할일 추가
+        final todoIds = <String>[];
+        for (int i = 0; i < 3; i++) {
+          final todo = Todo(
+            id: 'todo_$i',
+            title: '할일 $i',
+            date: DateTime(2026, 3, 15),
+          );
+          await provider.addTodo(todo);
+          todoIds.add(todo.id);
+        }
+
+        // When: 일괄 삭제 (undo 스택에 추가)
+        await provider.deleteTodos(todoIds, addToUndoStack: true);
+
+        // Then: undo 가능 여부 확인
+        expect(provider.canUndo, true);
+        expect(provider.todoCount, 0);
+      });
+
+      test('빈 리스트 삭제 시 0 반환', () async {
+        // When: 빈 리스트로 일괄 삭제
+        final deletedCount = await provider.deleteTodos([]);
+
+        // Then: 0 반환
+        expect(deletedCount, 0);
+      });
+
+      test('존재하지 않는 ID 삭제 시 무시', () async {
+        // Given: 2개의 할일 추가
+        final todo1 = Todo(
+          id: 'todo_1',
+          title: '할일 1',
+          date: DateTime(2026, 3, 15),
+        );
+        final todo2 = Todo(
+          id: 'todo_2',
+          title: '할일 2',
+          date: DateTime(2026, 3, 15),
+        );
+        await provider.addTodo(todo1);
+        await provider.addTodo(todo2);
+
+        // When: 존재하는 ID와 존재하지 않는 ID를 함께 삭제
+        final deletedCount = await provider.deleteTodos([
+          'todo_1',
+          'nonexistent_id',
+          'todo_2',
+        ]);
+
+        // Then: 존재하는 ID만 삭제됨
+        expect(deletedCount, 2);
+        expect(provider.todoCount, 0);
+      });
+    });
   });
 }
