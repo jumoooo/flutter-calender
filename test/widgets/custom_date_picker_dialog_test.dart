@@ -6,7 +6,6 @@ import 'package:flutter_calender/utils/date_utils.dart' as korean_date;
 import 'package:intl/date_symbol_data_local.dart';
 
 void main() {
-  // ─── 유닛 테스트: 날짜 파싱 로직 ──────────────────────────────────────────
   group('날짜 입력 파싱 로직 테스트', () {
     // _CustomDatePickerDialog 내부의 날짜 파싱 로직을 직접 추출하여 테스트
     // (private 클래스 접근 불가 → 동일 로직을 유닛 테스트로 검증)
@@ -73,7 +72,6 @@ void main() {
     });
   });
 
-  // ─── 유닛 테스트: 월 날짜 생성 로직 ─────────────────────────────────────
   group('월 날짜 생성 로직 테스트 (KoreanDateUtils)', () {
     test('3월 날짜 목록 생성 테스트 (31일)', () {
       final days = korean_date.KoreanDateUtils.getDaysInMonth(
@@ -119,7 +117,6 @@ void main() {
     });
   });
 
-  // ─── 유닛 테스트: 날짜 범위 유효성 검사 ─────────────────────────────────
   group('날짜 범위 유효성 검사 테스트', () {
     final firstDate = DateTime(2020, 1, 1);
     final lastDate = DateTime(2030, 12, 31);
@@ -140,7 +137,6 @@ void main() {
     });
   });
 
-  // ─── 유닛 테스트: 날짜 포맷팅 ────────────────────────────────────────────
   group('날짜 포맷팅 테스트 (KoreanDateUtils)', () {
     setUpAll(() async {
       // 한국어 로케일 초기화

@@ -61,8 +61,10 @@ class CalendarDateCell extends StatelessWidget {
 
             return GestureDetector(
               onTap: () {
-                Provider.of<CalendarProvider>(context, listen: false)
-                    .selectDate(date);
+                Provider.of<CalendarProvider>(
+                  context,
+                  listen: false,
+                ).selectDate(date);
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -124,13 +126,13 @@ class CalendarDateCell extends StatelessWidget {
                               color: isSunday
                                   ? Colors.red
                                   : isSaturday
-                                      ? Colors.blue
-                                      : _getTextColor(
-                                          isSelected,
-                                          isDragOver,
-                                          isCurrentMonth,
-                                          colorScheme,
-                                        ),
+                                  ? Colors.blue
+                                  : _getTextColor(
+                                      isSelected,
+                                      isDragOver,
+                                      isCurrentMonth,
+                                      colorScheme,
+                                    ),
                             ),
                           ),
                         ),
@@ -144,8 +146,9 @@ class CalendarDateCell extends StatelessWidget {
                             if (showMiniTodoPreview) {
                               // 달력만 모드: 색상 바 + 제목 텍스트
                               const maxDisplayCount = 3;
-                              final displayTodos =
-                                  todos.take(maxDisplayCount).toList();
+                              final displayTodos = todos
+                                  .take(maxDisplayCount)
+                                  .toList();
                               final hasMore = todos.length > maxDisplayCount;
 
                               return Column(
@@ -153,16 +156,16 @@ class CalendarDateCell extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   ...displayTodos.map((todo) {
-                                    final priorityColor =
-                                        _getPriorityColor(todo.priority);
+                                    final priorityColor = _getPriorityColor(
+                                      todo.priority,
+                                    );
                                     final title = todo.title;
                                     final preview = title.length > 5
                                         ? '${title.substring(0, 5)}…'
                                         : title;
 
                                     return Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 2),
+                                      padding: const EdgeInsets.only(bottom: 2),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [

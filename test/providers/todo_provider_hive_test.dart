@@ -42,11 +42,7 @@ void main() {
 
     test('Hive 초기화 및 할일 로드 테스트', () async {
       // Given: 할일 추가
-      final todo = Todo(
-        id: '1',
-        title: '테스트 할일',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo = Todo(id: '1', title: '테스트 할일', date: DateTime(2026, 3, 15));
       await provider.addTodo(todo);
 
       // When: 새로운 Provider로 다시 초기화
@@ -96,18 +92,11 @@ void main() {
 
     test('할일 업데이트 및 Hive 저장 테스트', () async {
       // Given: 할일 추가
-      final todo = Todo(
-        id: '1',
-        title: '원래 제목',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo = Todo(id: '1', title: '원래 제목', date: DateTime(2026, 3, 15));
       await provider.addTodo(todo);
 
       // When: 할일 업데이트
-      final updatedTodo = todo.copyWith(
-        title: '업데이트된 제목',
-        completed: true,
-      );
+      final updatedTodo = todo.copyWith(title: '업데이트된 제목', completed: true);
       await provider.updateTodo(updatedTodo);
 
       // Then: 메모리에서 업데이트 확인
@@ -126,16 +115,8 @@ void main() {
 
     test('할일 삭제 및 Hive에서 제거 테스트', () async {
       // Given: 여러 할일 추가
-      final todo1 = Todo(
-        id: '1',
-        title: '할일 1',
-        date: DateTime(2026, 3, 15),
-      );
-      final todo2 = Todo(
-        id: '2',
-        title: '할일 2',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo1 = Todo(id: '1', title: '할일 1', date: DateTime(2026, 3, 15));
+      final todo2 = Todo(id: '2', title: '할일 2', date: DateTime(2026, 3, 15));
       await provider.addTodo(todo1);
       await provider.addTodo(todo2);
 
@@ -189,11 +170,7 @@ void main() {
 
     test('할일 날짜 변경 및 Hive 저장 테스트', () async {
       // Given: 특정 날짜의 할일
-      final todo = Todo(
-        id: '1',
-        title: '할일',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo = Todo(id: '1', title: '할일', date: DateTime(2026, 3, 15));
       await provider.addTodo(todo);
 
       // When: 날짜 변경
@@ -214,21 +191,9 @@ void main() {
 
     test('여러 할일 추가 및 날짜별 조회 테스트', () async {
       // Given: 여러 날짜의 할일들
-      final todo1 = Todo(
-        id: '1',
-        title: '할일 1',
-        date: DateTime(2026, 3, 15),
-      );
-      final todo2 = Todo(
-        id: '2',
-        title: '할일 2',
-        date: DateTime(2026, 3, 15),
-      );
-      final todo3 = Todo(
-        id: '3',
-        title: '할일 3',
-        date: DateTime(2026, 3, 20),
-      );
+      final todo1 = Todo(id: '1', title: '할일 1', date: DateTime(2026, 3, 15));
+      final todo2 = Todo(id: '2', title: '할일 2', date: DateTime(2026, 3, 15));
+      final todo3 = Todo(id: '3', title: '할일 3', date: DateTime(2026, 3, 20));
 
       // When: 할일들 추가
       await provider.addTodo(todo1);
@@ -285,22 +250,34 @@ void main() {
       await provider.addTodo(todo3);
 
       // Then: 우선순위가 올바르게 저장되었는지 확인
-      expect(provider.todos.firstWhere((t) => t.id == '1').priority,
-          TodoPriority.low);
-      expect(provider.todos.firstWhere((t) => t.id == '2').priority,
-          TodoPriority.high);
-      expect(provider.todos.firstWhere((t) => t.id == '3').priority,
-          TodoPriority.veryHigh);
+      expect(
+        provider.todos.firstWhere((t) => t.id == '1').priority,
+        TodoPriority.low,
+      );
+      expect(
+        provider.todos.firstWhere((t) => t.id == '2').priority,
+        TodoPriority.high,
+      );
+      expect(
+        provider.todos.firstWhere((t) => t.id == '3').priority,
+        TodoPriority.veryHigh,
+      );
 
       // Then: Hive에서도 올바르게 로드되는지 확인
       final newProvider = TodoProvider();
       await newProvider.initialize();
-      expect(newProvider.todos.firstWhere((t) => t.id == '1').priority,
-          TodoPriority.low);
-      expect(newProvider.todos.firstWhere((t) => t.id == '2').priority,
-          TodoPriority.high);
-      expect(newProvider.todos.firstWhere((t) => t.id == '3').priority,
-          TodoPriority.veryHigh);
+      expect(
+        newProvider.todos.firstWhere((t) => t.id == '1').priority,
+        TodoPriority.low,
+      );
+      expect(
+        newProvider.todos.firstWhere((t) => t.id == '2').priority,
+        TodoPriority.high,
+      );
+      expect(
+        newProvider.todos.firstWhere((t) => t.id == '3').priority,
+        TodoPriority.veryHigh,
+      );
 
       // 정리
       await newProvider.clearAll();

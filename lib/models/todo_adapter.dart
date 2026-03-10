@@ -12,7 +12,6 @@ class TodoAdapter extends TypeAdapter<Todo> {
 
   @override
   Todo read(BinaryReader reader) {
-    // ── 기본 필드 (v1 이상 공통) ─────────────────────────────────────────
     final id = reader.readString();
     final title = reader.readString();
 
@@ -24,9 +23,6 @@ class TodoAdapter extends TypeAdapter<Todo> {
     final completed = reader.readBool();
     final priorityIndex = reader.readByte();
 
-    // ── 확장 필드 (v2 이상: availableBytes 체크) ──────────────────────────
-
-    // categoryId (String?)
     String? categoryId;
     if (reader.availableBytes > 0) {
       final hasCategoryId = reader.readBool();
@@ -59,7 +55,8 @@ class TodoAdapter extends TypeAdapter<Todo> {
       description: description,
       date: DateTime.fromMillisecondsSinceEpoch(dateMilliseconds),
       completed: completed,
-      priority: TodoPriority.values[priorityIndex.clamp(0, TodoPriority.values.length - 1)],
+      priority: TodoPriority
+          .values[priorityIndex.clamp(0, TodoPriority.values.length - 1)],
       categoryId: categoryId,
       dueDate: dueDate,
       todoTime: todoTime,
@@ -68,7 +65,6 @@ class TodoAdapter extends TypeAdapter<Todo> {
 
   @override
   void write(BinaryWriter writer, Todo obj) {
-    // ── 기본 필드 ──────────────────────────────────────────────────────────
     writer.writeString(obj.id);
     writer.writeString(obj.title);
     writer.writeBool(obj.description != null);
@@ -79,8 +75,7 @@ class TodoAdapter extends TypeAdapter<Todo> {
     writer.writeBool(obj.completed);
     writer.writeByte(obj.priority.index);
 
-    // ── 확장 필드 (v2) ────────────────────────────────────────────────────
-    // categoryId
+    writer.writeBool(obj.categoryId != null);
     writer.writeBool(obj.categoryId != null);
     if (obj.categoryId != null) {
       writer.writeString(obj.categoryId!);

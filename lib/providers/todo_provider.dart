@@ -39,8 +39,6 @@ class TodoProvider with ChangeNotifier {
   final StreamController<int> _warningController =
       StreamController<int>.broadcast();
 
-  // ─── Getters ────────────────────────────────────────────────────────────────
-
   /// 할일 목록 getter (읽기 전용)
   List<Todo> get todos => List.unmodifiable(_todos);
 
@@ -75,8 +73,6 @@ class TodoProvider with ChangeNotifier {
   /// 경고 스트림 (읽기 전용) - 할일 개수 경고용
   Stream<int> get warningStream => _warningController.stream;
 
-  // ─── 인덱스 유틸리티 ────────────────────────────────────────────────────────
-
   /// 날짜를 인덱스 키로 변환
   String _key(DateTime date) => '${date.year}-${date.month}-${date.day}';
 
@@ -102,8 +98,6 @@ class TodoProvider with ChangeNotifier {
       _addToIndex(todo);
     }
   }
-
-  // ─── 초기화 ─────────────────────────────────────────────────────────────────
 
   /// Hive Box 초기화 및 데이터 로드
   Future<void> initialize() async {
@@ -154,8 +148,6 @@ class TodoProvider with ChangeNotifier {
     }
   }
 
-  // ─── Hive 내부 저장/삭제 ────────────────────────────────────────────────────
-
   Future<void> _saveTodo(Todo todo) async {
     if (_box == null) throw Exception('Hive Box가 초기화되지 않았습니다.');
     try {
@@ -183,8 +175,6 @@ class TodoProvider with ChangeNotifier {
       rethrow;
     }
   }
-
-  // ─── 공개 CRUD ───────────────────────────────────────────────────────────────
 
   /// 특정 날짜의 할일 목록 반환 (O(1), 정렬/필터 적용)
   List<Todo> getTodosByDate(DateTime date) {
@@ -222,7 +212,7 @@ class TodoProvider with ChangeNotifier {
   }
 
   /// 할일 추가
-  /// 
+  ///
   /// 할일 개수 제한이 설정되어 있고 초과하면 예외를 발생시킵니다.
   /// 경고 임계값에 도달하면 경고 스트림에 알림을 보냅니다.
   Future<void> addTodo(Todo todo) async {
@@ -241,8 +231,7 @@ class TodoProvider with ChangeNotifier {
 
       // 경고 임계값 체크 (제한의 80% 또는 설정된 임계값)
       final warningThreshold = AppConfig.todoCountWarningThreshold;
-      if (warningThreshold != null &&
-          _maxTodoCount != null &&
+      if (_maxTodoCount != null &&
           _todos.length >= warningThreshold &&
           _todos.length < _maxTodoCount!) {
         _warningController.add(_todos.length);
@@ -250,8 +239,10 @@ class TodoProvider with ChangeNotifier {
     } catch (e) {
       _todos.remove(todo);
       _removeFromIndex(todo);
-      final error = AppError.fromType(AppErrorType.todoAddFailed,
-          exception: e is Exception ? e : null);
+      final error = AppError.fromType(
+        AppErrorType.todoAddFailed,
+        exception: e is Exception ? e : null,
+      );
       _errorController.add(error);
       rethrow;
     }
@@ -273,8 +264,10 @@ class TodoProvider with ChangeNotifier {
       _removeFromIndex(updatedTodo);
       _todos[index] = previousTodo;
       _addToIndex(previousTodo);
-      final error = AppError.fromType(AppErrorType.todoUpdateFailed,
-          exception: e is Exception ? e : null);
+      final error = AppError.fromType(
+        AppErrorType.todoUpdateFailed,
+        exception: e is Exception ? e : null,
+      );
       _errorController.add(error);
       rethrow;
     }
@@ -305,8 +298,10 @@ class TodoProvider with ChangeNotifier {
     } catch (e) {
       _todos.insert(index, todoToDelete);
       _addToIndex(todoToDelete);
-      final error = AppError.fromType(AppErrorType.todoDeleteFailed,
-          exception: e is Exception ? e : null);
+      final error = AppError.fromType(
+        AppErrorType.todoDeleteFailed,
+        exception: e is Exception ? e : null,
+      );
       _errorController.add(error);
       rethrow;
     }
@@ -318,7 +313,10 @@ class TodoProvider with ChangeNotifier {
   /// [addToUndoStack] true이면 각 삭제를 undo 스택에 추가 (기본값: true)
   ///
   /// 반환값: 성공적으로 삭제된 할일 개수
-  Future<int> deleteTodos(List<String> ids, {bool addToUndoStack = true}) async {
+  Future<int> deleteTodos(
+    List<String> ids, {
+    bool addToUndoStack = true,
+  }) async {
     if (ids.isEmpty) return 0;
 
     final deletedTodos = <Todo>[];
@@ -356,8 +354,10 @@ class TodoProvider with ChangeNotifier {
         _addToIndex(deletedTodos[i]);
       }
 
-      final error = AppError.fromType(AppErrorType.todoDeleteFailed,
-          exception: e is Exception ? e : null);
+      final error = AppError.fromType(
+        AppErrorType.todoDeleteFailed,
+        exception: e is Exception ? e : null,
+      );
       _errorController.add(error);
       rethrow;
     }
@@ -400,8 +400,9 @@ class TodoProvider with ChangeNotifier {
     if (index == -1) return;
 
     final previousTodo = _todos[index];
-    final updatedTodo =
-        previousTodo.copyWith(completed: !previousTodo.completed);
+    final updatedTodo = previousTodo.copyWith(
+      completed: !previousTodo.completed,
+    );
 
     try {
       _removeFromIndex(previousTodo);
@@ -413,8 +414,10 @@ class TodoProvider with ChangeNotifier {
       _removeFromIndex(updatedTodo);
       _todos[index] = previousTodo;
       _addToIndex(previousTodo);
-      final error = AppError.fromType(AppErrorType.todoToggleFailed,
-          exception: e is Exception ? e : null);
+      final error = AppError.fromType(
+        AppErrorType.todoToggleFailed,
+        exception: e is Exception ? e : null,
+      );
       _errorController.add(error);
       rethrow;
     }
@@ -438,14 +441,14 @@ class TodoProvider with ChangeNotifier {
       _removeFromIndex(updatedTodo);
       _todos[index] = previousTodo;
       _addToIndex(previousTodo);
-      final error = AppError.fromType(AppErrorType.todoMoveFailed,
-          exception: e is Exception ? e : null);
+      final error = AppError.fromType(
+        AppErrorType.todoMoveFailed,
+        exception: e is Exception ? e : null,
+      );
       _errorController.add(error);
       rethrow;
     }
   }
-
-  // ─── 정렬 / 필터 ─────────────────────────────────────────────────────────────
 
   /// 정렬 방식 변경
   void setSortType(TodoSortType type) {
@@ -460,8 +463,6 @@ class TodoProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ─── 검색 ────────────────────────────────────────────────────────────────────
-
   /// 할일 검색 (제목/설명, 우선순위 필터, 날짜 범위)
   List<Todo> searchTodos({
     required String query,
@@ -474,8 +475,7 @@ class TodoProvider with ChangeNotifier {
     return _todos.where((todo) {
       if (q.isNotEmpty) {
         final titleMatch = todo.title.toLowerCase().contains(q);
-        final descMatch =
-            todo.description?.toLowerCase().contains(q) ?? false;
+        final descMatch = todo.description?.toLowerCase().contains(q) ?? false;
         if (!titleMatch && !descMatch) return false;
       }
 
@@ -484,29 +484,31 @@ class TodoProvider with ChangeNotifier {
       }
 
       if (startDate != null) {
-        final start =
-            DateTime(startDate.year, startDate.month, startDate.day);
-        final todoDate =
-            DateTime(todo.date.year, todo.date.month, todo.date.day);
+        final start = DateTime(startDate.year, startDate.month, startDate.day);
+        final todoDate = DateTime(
+          todo.date.year,
+          todo.date.month,
+          todo.date.day,
+        );
         if (todoDate.isBefore(start)) return false;
       }
       if (endDate != null) {
         final end = DateTime(endDate.year, endDate.month, endDate.day);
-        final todoDate =
-            DateTime(todo.date.year, todo.date.month, todo.date.day);
+        final todoDate = DateTime(
+          todo.date.year,
+          todo.date.month,
+          todo.date.day,
+        );
         if (todoDate.isAfter(end)) return false;
       }
 
       return true;
-    }).toList()
-      ..sort((a, b) {
-        final dateCmp = b.date.compareTo(a.date);
-        if (dateCmp != 0) return dateCmp;
-        return b.priority.index.compareTo(a.priority.index);
-      });
+    }).toList()..sort((a, b) {
+      final dateCmp = b.date.compareTo(a.date);
+      if (dateCmp != 0) return dateCmp;
+      return b.priority.index.compareTo(a.priority.index);
+    });
   }
-
-  // ─── 유틸리티 ────────────────────────────────────────────────────────────────
 
   /// 모든 할일 삭제 (테스트/디버깅용)
   Future<void> clearAll() async {
@@ -529,6 +531,7 @@ class TodoProvider with ChangeNotifier {
   @override
   void dispose() {
     _errorController.close();
+    _warningController.close();
     _box?.close();
     super.dispose();
   }

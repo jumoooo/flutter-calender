@@ -25,11 +25,7 @@ void main() {
 
     test('Todo 완료 상태 변경 테스트', () {
       // Given: 완료되지 않은 Todo
-      final todo = Todo(
-        id: '1',
-        title: '테스트 할일',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo = Todo(id: '1', title: '테스트 할일', date: DateTime(2026, 3, 15));
 
       // When: 완료 상태로 변경
       final completedTodo = todo.copyWith(completed: true);
@@ -41,11 +37,7 @@ void main() {
 
     test('Todo 날짜 변경 테스트', () {
       // Given: 특정 날짜의 Todo
-      final todo = Todo(
-        id: '1',
-        title: '테스트 할일',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo = Todo(id: '1', title: '테스트 할일', date: DateTime(2026, 3, 15));
 
       // When: 날짜 변경
       final newDate = DateTime(2026, 3, 20);

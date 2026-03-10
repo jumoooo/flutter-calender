@@ -37,11 +37,13 @@ void main() async {
   final categoryProvider = CategoryProvider();
   await categoryProvider.initialize();
 
-  runApp(MyApp(
-    todoProvider: todoProvider,
-    themeProvider: themeProvider,
-    categoryProvider: categoryProvider,
-  ));
+  runApp(
+    MyApp(
+      todoProvider: todoProvider,
+      themeProvider: themeProvider,
+      categoryProvider: categoryProvider,
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -76,9 +78,7 @@ class MyApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: const [
-            Locale('ko', 'KR'),
-          ],
+          supportedLocales: const [Locale('ko', 'KR')],
           builder: (context, child) {
             final width = MediaQuery.of(context).size.width;
             if (width > 800 && child != null) {
@@ -89,10 +89,7 @@ class MyApp extends StatelessWidget {
                   constraints: const BoxConstraints(maxWidth: 520),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Material(
-                      elevation: 4,
-                      child: child,
-                    ),
+                    child: Material(elevation: 4, child: child),
                   ),
                 ),
               );

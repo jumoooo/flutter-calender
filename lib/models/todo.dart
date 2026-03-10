@@ -133,7 +133,9 @@ class Todo {
     }
 
     return Todo(
-      id: json['id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id:
+          json['id'] as String? ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
       title: json['title'] as String? ?? '제목 없음',
       description: json['description'] as String?,
       date: parseDate(json['date']),

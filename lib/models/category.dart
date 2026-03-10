@@ -81,37 +81,37 @@ class DefaultCategories {
   DefaultCategories._();
 
   static List<Category> get list => [
-        Category(
-          id: 'work',
-          name: '업무',
-          colorValue: Colors.blue.toARGB32(),
-          iconCode: Icons.work_outline.codePoint,
-        ),
-        Category(
-          id: 'personal',
-          name: '개인',
-          colorValue: Colors.green.toARGB32(),
-          iconCode: Icons.person_outline.codePoint,
-        ),
-        Category(
-          id: 'shopping',
-          name: '쇼핑',
-          colorValue: Colors.orange.toARGB32(),
-          iconCode: Icons.shopping_cart_outlined.codePoint,
-        ),
-        Category(
-          id: 'health',
-          name: '건강',
-          colorValue: Colors.red.toARGB32(),
-          iconCode: Icons.favorite_border.codePoint,
-        ),
-        Category(
-          id: 'study',
-          name: '학습',
-          colorValue: Colors.purple.toARGB32(),
-          iconCode: Icons.school_outlined.codePoint,
-        ),
-      ];
+    Category(
+      id: 'work',
+      name: '업무',
+      colorValue: Colors.blue.toARGB32(),
+      iconCode: Icons.work_outline.codePoint,
+    ),
+    Category(
+      id: 'personal',
+      name: '개인',
+      colorValue: Colors.green.toARGB32(),
+      iconCode: Icons.person_outline.codePoint,
+    ),
+    Category(
+      id: 'shopping',
+      name: '쇼핑',
+      colorValue: Colors.orange.toARGB32(),
+      iconCode: Icons.shopping_cart_outlined.codePoint,
+    ),
+    Category(
+      id: 'health',
+      name: '건강',
+      colorValue: Colors.red.toARGB32(),
+      iconCode: Icons.favorite_border.codePoint,
+    ),
+    Category(
+      id: 'study',
+      name: '학습',
+      colorValue: Colors.purple.toARGB32(),
+      iconCode: Icons.school_outlined.codePoint,
+    ),
+  ];
 }
 
 /// 선택 가능한 카테고리 색상 팔레트

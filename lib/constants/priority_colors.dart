@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_calender/models/todo.dart';
 
 /// 우선순위 색상 상수
-/// 
+///
 /// 앱 전반에서 사용되는 우선순위별 색상을 중앙에서 관리합니다.
 /// uiStyleRefiner 문서에 정의된 표준 파스텔 색상 팔레트를 사용합니다.
 class PriorityColors {

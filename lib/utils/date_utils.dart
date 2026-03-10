@@ -16,7 +16,10 @@ class KoreanDateUtils {
 
   /// DateFormat을 캐시에서 가져오거나 생성
   static DateFormat _getFormat(String pattern) {
-    return _formatCache.putIfAbsent(pattern, () => DateFormat(pattern, koreanLocale));
+    return _formatCache.putIfAbsent(
+      pattern,
+      () => DateFormat(pattern, koreanLocale),
+    );
   }
 
   /// 한국 시간대

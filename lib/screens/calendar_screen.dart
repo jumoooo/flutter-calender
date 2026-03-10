@@ -69,9 +69,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
             icon: const Icon(Icons.label_outline),
             tooltip: '카테고리 관리',
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CategoryScreen()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const CategoryScreen()));
             },
           ),
           // 설정 화면으로 이동
@@ -79,9 +79,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
             icon: const Icon(Icons.settings_outlined),
             tooltip: '설정',
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
             },
           ),
         ],
@@ -149,7 +149,9 @@ class _TodayFloatingButton extends StatelessWidget {
                 boxShadow: [
                   // 살짝 떠 있는 느낌을 주기 위한 그림자
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.18),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.shadow.withValues(alpha: 0.18),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),

@@ -55,11 +55,7 @@ void main() {
       });
 
       // When: 정상적인 작업 수행 (에러 없음)
-      final todo = Todo(
-        id: '1',
-        title: '정상 할일',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo = Todo(id: '1', title: '정상 할일', date: DateTime(2026, 3, 15));
       await provider.addTodo(todo);
 
       // Then: 에러가 발생하지 않았는지 확인
@@ -76,12 +72,8 @@ void main() {
       // When: Box를 닫아서 저장 실패 상황 시뮬레이션
       // (실제로는 Box를 닫을 수 없으므로, 다른 방법으로 테스트)
       // 대신 정상적인 추가 후 에러가 발생하지 않았는지 확인
-      final todo = Todo(
-        id: '1',
-        title: '테스트 할일',
-        date: DateTime(2026, 3, 15),
-      );
-      
+      final todo = Todo(id: '1', title: '테스트 할일', date: DateTime(2026, 3, 15));
+
       try {
         await provider.addTodo(todo);
         // Then: 정상적으로 추가되었는지 확인
@@ -95,17 +87,13 @@ void main() {
 
     test('할일 업데이트 실패 시 롤백 테스트', () async {
       // Given: 할일 추가
-      final todo = Todo(
-        id: '1',
-        title: '원래 제목',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo = Todo(id: '1', title: '원래 제목', date: DateTime(2026, 3, 15));
       await provider.addTodo(todo);
       final originalTitle = provider.todos.first.title;
 
       // When: 업데이트 시도
       final updatedTodo = todo.copyWith(title: '업데이트된 제목');
-      
+
       try {
         await provider.updateTodo(updatedTodo);
         // Then: 정상적으로 업데이트되었는지 확인
@@ -118,11 +106,7 @@ void main() {
 
     test('할일 삭제 실패 시 롤백 테스트', () async {
       // Given: 할일 추가
-      final todo = Todo(
-        id: '1',
-        title: '삭제될 할일',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo = Todo(id: '1', title: '삭제될 할일', date: DateTime(2026, 3, 15));
       await provider.addTodo(todo);
       final initialCount = provider.todos.length;
 
@@ -163,16 +147,12 @@ void main() {
     test('할일 날짜 변경 실패 시 롤백 테스트', () async {
       // Given: 특정 날짜의 할일
       final originalDate = DateTime(2026, 3, 15);
-      final todo = Todo(
-        id: '1',
-        title: '할일',
-        date: originalDate,
-      );
+      final todo = Todo(id: '1', title: '할일', date: originalDate);
       await provider.addTodo(todo);
 
       // When: 날짜 변경 시도
       final newDate = DateTime(2026, 3, 20);
-      
+
       try {
         await provider.moveTodo('1', newDate);
         // Then: 정상적으로 변경되었는지 확인
@@ -217,7 +197,7 @@ void main() {
       expect(error1.message, isNotEmpty);
       expect(error2.message, isNotEmpty);
       expect(error3.message, isNotEmpty);
-      
+
       // 각 에러 타입의 메시지가 서로 다른지 확인
       expect(error1.type, AppErrorType.hiveInitFailed);
       expect(error2.type, AppErrorType.dataSaveFailed);

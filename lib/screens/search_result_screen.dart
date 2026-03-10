@@ -22,7 +22,6 @@ class SearchResultScreen extends StatefulWidget {
 }
 
 class _SearchResultScreenState extends State<SearchResultScreen> {
-  // ─── 검색 상태 ────────────────────────────────────────────────────────────
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
@@ -34,7 +33,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
 
-  // ─── 필터 패널 표시 여부 ──────────────────────────────────────────────────
   bool _showFilters = false;
 
   @override
@@ -53,7 +51,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     super.dispose();
   }
 
-  // ─── 날짜 선택기 (커스텀 다이얼로그 사용) ────────────────────────────────
   Future<void> _pickDate({required bool isStart}) async {
     final initial = isStart
         ? (_startDate ?? DateTime.now())
@@ -72,16 +69,18 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
       } else {
         _endDate = picked;
         // 종료일이 시작일보다 빠르면 시작일 초기화
-        if (_startDate != null && picked.isBefore(_startDate!)) _startDate = null;
+        if (_startDate != null && picked.isBefore(_startDate!))
+          _startDate = null;
       }
     });
   }
 
-  // ─── 검색 실행 ────────────────────────────────────────────────────────────
   List<Todo> _getResults(TodoProvider provider) {
     return provider.searchTodos(
       query: _query,
-      priorities: _selectedPriorities.isEmpty ? null : _selectedPriorities.toList(),
+      priorities: _selectedPriorities.isEmpty
+          ? null
+          : _selectedPriorities.toList(),
       startDate: _startDate,
       endDate: _endDate,
     );
@@ -97,8 +96,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     return grouped;
   }
 
-  // ─── UI ───────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -110,15 +107,14 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
       ),
       body: Column(
         children: [
-          // ── 검색 입력 + 필터 버튼 한 열 ───────────────────────────────
           _buildSearchRow(colorScheme),
-          // ── 필터 패널 ──────────────────────────────────────────────────
           AnimatedSize(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeInOut,
-            child: _showFilters ? _buildFilterPanel(colorScheme) : const SizedBox.shrink(),
+            child: _showFilters
+                ? _buildFilterPanel(colorScheme)
+                : const SizedBox.shrink(),
           ),
-          // ── 검색 결과 ──────────────────────────────────────────────────
           Expanded(
             child: Consumer<TodoProvider>(
               builder: (context, provider, _) {
@@ -141,9 +137,9 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     );
   }
 
-  // ─── 검색 입력 + 필터 버튼 한 열 ────────────────────────────────────────
   Widget _buildSearchRow(ColorScheme colorScheme) {
-    final hasFilter = _selectedPriorities.isNotEmpty ||
+    final hasFilter =
+        _selectedPriorities.isNotEmpty ||
         _startDate != null ||
         _endDate != null;
 
@@ -165,7 +161,10 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                 decoration: InputDecoration(
                   hintText: '할일 검색...',
                   border: InputBorder.none,
-                  prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   suffixIcon: _query.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear),
@@ -175,7 +174,10 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                           },
                         )
                       : null,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                 ),
                 onChanged: (value) => setState(() => _query = value),
                 textInputAction: TextInputAction.search,
@@ -201,7 +203,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     );
   }
 
-  // ─── 필터 패널 ────────────────────────────────────────────────────────────
   Widget _buildFilterPanel(ColorScheme colorScheme) {
     final dateFormat = DateFormat('yyyy.MM.dd');
 
@@ -219,11 +220,13 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             children: TodoPriority.values.map((priority) {
               final selected = _selectedPriorities.contains(priority);
               final color = PriorityColors.getColor(priority);
-              return               FilterChip(
+              return FilterChip(
                 label: Text(
                   PriorityColors.labelFull(priority),
                   style: TextStyle(
-                    color: selected ? colorScheme.onPrimary : colorScheme.onSurface,
+                    color: selected
+                        ? colorScheme.onPrimary
+                        : colorScheme.onSurface,
                     fontSize: 12,
                   ),
                 ),
@@ -246,7 +249,9 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             children: [
               // 시작일
               _DateChip(
-                label: _startDate != null ? dateFormat.format(_startDate!) : '시작일',
+                label: _startDate != null
+                    ? dateFormat.format(_startDate!)
+                    : '시작일',
                 isSet: _startDate != null,
                 onTap: () => _pickDate(isStart: true),
                 onClear: () => setState(() => _startDate = null),
@@ -254,7 +259,10 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text('~', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+                child: Text(
+                  '~',
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                ),
               ),
               // 종료일
               _DateChip(
@@ -266,7 +274,9 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
               ),
               const Spacer(),
               // 필터 전체 초기화
-              if (_selectedPriorities.isNotEmpty || _startDate != null || _endDate != null)
+              if (_selectedPriorities.isNotEmpty ||
+                  _startDate != null ||
+                  _endDate != null)
                 TextButton(
                   onPressed: () => setState(() {
                     _selectedPriorities.clear();
@@ -283,7 +293,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     );
   }
 
-  // ─── 결과 목록 ────────────────────────────────────────────────────────────
   Widget _buildResultList(List<Todo> results, ColorScheme colorScheme) {
     final grouped = _groupByDate(results);
     // 날짜 내림차순 정렬된 키 목록
@@ -306,26 +315,27 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
               child: Text(
                 korean_date.KoreanDateUtils.formatKoreanDateWithWeekday(date),
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             // 해당 날짜의 할일 목록
-            ...todos.map((todo) => _SearchResultItem(
-                  todo: todo,
-                  query: _query,
-                  colorScheme: colorScheme,
-                  // 검색 결과 클릭 시 상세 보기 다이얼로그
-                  onTap: () => showTodoDetailDialog(context, todo),
-                )),
+            ...todos.map(
+              (todo) => _SearchResultItem(
+                todo: todo,
+                query: _query,
+                colorScheme: colorScheme,
+                // 검색 결과 클릭 시 상세 보기 다이얼로그
+                onTap: () => showTodoDetailDialog(context, todo),
+              ),
+            ),
           ],
         );
       },
     );
   }
 
-  // ─── 빈 상태 (검색 전) ────────────────────────────────────────────────────
   Widget _buildEmptyHint(ColorScheme colorScheme) {
     return Center(
       child: Column(
@@ -348,13 +358,16 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     );
   }
 
-  // ─── 결과 없음 ────────────────────────────────────────────────────────────
   Widget _buildNoResults(ColorScheme colorScheme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inbox_outlined, size: 64, color: colorScheme.outlineVariant),
+          Icon(
+            Icons.inbox_outlined,
+            size: 64,
+            color: colorScheme.outlineVariant,
+          ),
           const SizedBox(height: 16),
           Text(
             '검색 결과가 없습니다',
@@ -371,7 +384,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
   }
 }
 
-// ─── 날짜 칩 위젯 (호버 효과 + 손가락 커서 포함) ─────────────────────────────
 class _DateChip extends StatefulWidget {
   final String label;
   final bool isSet;
@@ -394,6 +406,7 @@ class _DateChip extends StatefulWidget {
 class _DateChipState extends State<_DateChip> {
   /// 칩 전체 호버 여부
   bool _isChipHovered = false;
+
   /// X 버튼 호버 여부
   bool _isCloseHovered = false;
 
@@ -403,7 +416,9 @@ class _DateChipState extends State<_DateChip> {
     // 호버 시 배경 살짝 어둡게
     final bgColor = widget.isSet
         ? (_isChipHovered ? cs.primary.withAlpha(60) : cs.primaryContainer)
-        : (_isChipHovered ? cs.surfaceContainerHigh : cs.surfaceContainerHighest);
+        : (_isChipHovered
+              ? cs.surfaceContainerHigh
+              : cs.surfaceContainerHighest);
 
     return MouseRegion(
       // 손가락 모양 커서
@@ -426,7 +441,9 @@ class _DateChipState extends State<_DateChip> {
                 widget.label,
                 style: TextStyle(
                   fontSize: 13,
-                  color: widget.isSet ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+                  color: widget.isSet
+                      ? cs.onPrimaryContainer
+                      : cs.onSurfaceVariant,
                 ),
               ),
               if (widget.isSet) ...[
@@ -468,7 +485,6 @@ class _DateChipState extends State<_DateChip> {
   }
 }
 
-// ─── 검색 결과 아이템 (하이라이팅 포함) ────────────────────────────────────────
 class _SearchResultItem extends StatelessWidget {
   final Todo todo;
   final String query;
@@ -515,9 +531,7 @@ class _SearchResultItem extends StatelessWidget {
                       _highlightText(
                         text: todo.title,
                         query: query,
-                        baseStyle: Theme.of(context)
-                            .textTheme
-                            .bodyMedium!
+                        baseStyle: Theme.of(context).textTheme.bodyMedium!
                             .copyWith(
                               color: todo.completed
                                   ? colorScheme.onSurfaceVariant
@@ -541,12 +555,8 @@ class _SearchResultItem extends StatelessWidget {
                         _highlightText(
                           text: todo.description!,
                           query: query,
-                          baseStyle: Theme.of(context)
-                              .textTheme
-                              .bodySmall!
-                              .copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
+                          baseStyle: Theme.of(context).textTheme.bodySmall!
+                              .copyWith(color: colorScheme.onSurfaceVariant),
                           highlightColor: colorScheme.primary,
                         ),
                       ],
@@ -570,7 +580,13 @@ class _SearchResultItem extends StatelessWidget {
     required TextStyle baseStyle,
     required Color highlightColor,
   }) {
-    if (query.isEmpty) return Text(text, style: baseStyle, maxLines: 1, overflow: TextOverflow.ellipsis);
+    if (query.isEmpty)
+      return Text(
+        text,
+        style: baseStyle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
 
     final lowerText = text.toLowerCase();
     final lowerQuery = query.toLowerCase();
@@ -586,14 +602,16 @@ class _SearchResultItem extends StatelessWidget {
       if (idx > start) {
         spans.add(TextSpan(text: text.substring(start, idx)));
       }
-      spans.add(TextSpan(
-        text: text.substring(idx, idx + query.length),
-        style: TextStyle(
-          color: highlightColor,
-          fontWeight: FontWeight.bold,
-          backgroundColor: highlightColor.withAlpha(30),
+      spans.add(
+        TextSpan(
+          text: text.substring(idx, idx + query.length),
+          style: TextStyle(
+            color: highlightColor,
+            fontWeight: FontWeight.bold,
+            backgroundColor: highlightColor.withAlpha(30),
+          ),
         ),
-      ));
+      );
       start = idx + query.length;
     }
 

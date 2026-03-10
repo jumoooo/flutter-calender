@@ -14,24 +14,20 @@ class SettingsScreen extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('설정'),
-      ),
+      appBar: AppBar(title: const Text('설정')),
       body: ListView(
         children: [
-          // ─── 테마 섹션 헤더 ──────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
             child: Text(
               '화면 테마',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
 
-          // ─── 시스템 자동 ──────────────────────────────────────────────────
           _ThemeOptionTile(
             icon: Icons.brightness_auto_rounded,
             label: '시스템 설정 따르기',
@@ -40,7 +36,6 @@ class SettingsScreen extends StatelessWidget {
             onTap: () => themeProvider.setThemeMode(ThemeMode.system),
           ),
 
-          // ─── 라이트 모드 ─────────────────────────────────────────────────
           _ThemeOptionTile(
             icon: Icons.light_mode_rounded,
             label: '라이트 모드',
@@ -49,7 +44,6 @@ class SettingsScreen extends StatelessWidget {
             onTap: () => themeProvider.setThemeMode(ThemeMode.light),
           ),
 
-          // ─── 다크 모드 ───────────────────────────────────────────────────
           _ThemeOptionTile(
             icon: Icons.dark_mode_rounded,
             label: '다크 모드',
@@ -60,15 +54,14 @@ class SettingsScreen extends StatelessWidget {
 
           const Divider(height: 32),
 
-          // ─── 앱 정보 섹션 ─────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
               '앱 정보',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           ListTile(
@@ -77,8 +70,8 @@ class SettingsScreen extends StatelessWidget {
             trailing: Text(
               '1.0.0',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],
@@ -122,8 +115,10 @@ class _ThemeOptionTile extends StatelessWidget {
       subtitle: Text(description),
       trailing: isSelected
           ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
-          : Icon(Icons.radio_button_unchecked_rounded,
-              color: colorScheme.onSurfaceVariant),
+          : Icon(
+              Icons.radio_button_unchecked_rounded,
+              color: colorScheme.onSurfaceVariant,
+            ),
       onTap: onTap,
     );
   }

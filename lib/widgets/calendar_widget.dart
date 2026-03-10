@@ -243,7 +243,7 @@ class _CalendarWidgetState extends State<CalendarWidget>
         _isSelectionMode = false;
       });
 
-      if (!mounted) return;
+      if (!mounted || !context.mounted) return;
 
       // 성공 메시지 표시 (되돌리기 액션 포함)
       SnackbarHelper.showSuccess(
@@ -257,7 +257,7 @@ class _CalendarWidgetState extends State<CalendarWidget>
             : null,
       );
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || !context.mounted) return;
 
       // 에러 메시지 표시
       SnackbarHelper.showError(context, '삭제 중 오류가 발생했습니다: ${e.toString()}');
@@ -270,6 +270,7 @@ class _CalendarWidgetState extends State<CalendarWidget>
   Future<void> _animateMonthChange({required bool toNext}) async {
     if (_monthViewportWidth <= 0) {
       // 폭 정보를 아직 모르면 그냥 바로 전환
+      if (!mounted) return;
       final calendarProvider = Provider.of<CalendarProvider>(
         context,
         listen: false,
@@ -799,7 +800,6 @@ class _CalendarWidgetState extends State<CalendarWidget>
                     ],
                   ),
                 ),
-                // ── 선택 모드 진입 버튼 (선택 모드가 아닐 때만 표시) ─────────────
                 if (!_isSelectionMode)
                   IconButton(
                     icon: const Icon(Icons.check_box_outline_blank),
@@ -807,7 +807,6 @@ class _CalendarWidgetState extends State<CalendarWidget>
                     onPressed: _toggleSelectionMode,
                   )
                 else
-                  // ── 선택 모드 헤더 (선택 개수, 전체 선택, 종료 버튼) ─────────
                   Row(
                     children: [
                       Text(
@@ -842,7 +841,6 @@ class _CalendarWidgetState extends State<CalendarWidget>
                       ),
                     ],
                   ),
-                // ── 정렬 + 필터 컨트롤 (선택 모드가 아닐 때만 표시) ─────────────
                 if (!_isSelectionMode)
                   _SortFilterButtons(todoProvider: todoProvider),
               ],
@@ -960,7 +958,6 @@ class _CalendarWidgetState extends State<CalendarWidget>
                   },
                 ),
               ),
-            // ── 일괄 삭제 버튼 (선택 모드이고 선택된 항목이 있을 때만 표시) ─────
             if (_isSelectionMode && _selectedTodoIds.isNotEmpty)
               Container(
                 padding: const EdgeInsets.all(8),
@@ -1456,9 +1453,6 @@ class _CalendarWidgetState extends State<CalendarWidget>
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 정렬/완료 필터 버튼 위젯
-// ─────────────────────────────────────────────────────────────────────────────
 class _SortFilterButtons extends StatelessWidget {
   final TodoProvider todoProvider;
 

@@ -44,11 +44,7 @@ void main() {
 
     test('할일 추가 테스트', () async {
       // Given: 새로운 할일
-      final todo = Todo(
-        id: '1',
-        title: '테스트 할일',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo = Todo(id: '1', title: '테스트 할일', date: DateTime(2026, 3, 15));
 
       // When: 할일 추가
       await provider.addTodo(todo);
@@ -60,21 +56,9 @@ void main() {
 
     test('특정 날짜의 할일 목록 조회 테스트', () async {
       // Given: 여러 날짜의 할일들
-      final todo1 = Todo(
-        id: '1',
-        title: '할일 1',
-        date: DateTime(2026, 3, 15),
-      );
-      final todo2 = Todo(
-        id: '2',
-        title: '할일 2',
-        date: DateTime(2026, 3, 15),
-      );
-      final todo3 = Todo(
-        id: '3',
-        title: '할일 3',
-        date: DateTime(2026, 3, 20),
-      );
+      final todo1 = Todo(id: '1', title: '할일 1', date: DateTime(2026, 3, 15));
+      final todo2 = Todo(id: '2', title: '할일 2', date: DateTime(2026, 3, 15));
+      final todo3 = Todo(id: '3', title: '할일 3', date: DateTime(2026, 3, 20));
 
       await provider.addTodo(todo1);
       await provider.addTodo(todo2);
@@ -90,11 +74,7 @@ void main() {
 
     test('할일 업데이트 테스트', () async {
       // Given: 할일 추가
-      final todo = Todo(
-        id: '1',
-        title: '원래 제목',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo = Todo(id: '1', title: '원래 제목', date: DateTime(2026, 3, 15));
       await provider.addTodo(todo);
 
       // When: 할일 업데이트
@@ -107,11 +87,7 @@ void main() {
 
     test('할일 삭제 테스트', () async {
       // Given: 할일 추가
-      final todo = Todo(
-        id: '1',
-        title: '삭제될 할일',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo = Todo(id: '1', title: '삭제될 할일', date: DateTime(2026, 3, 15));
       await provider.addTodo(todo);
 
       // When: 할일 삭제
@@ -146,11 +122,7 @@ void main() {
 
     test('할일 날짜 변경 테스트 (드래그 앤 드롭)', () async {
       // Given: 특정 날짜의 할일
-      final todo = Todo(
-        id: '1',
-        title: '할일',
-        date: DateTime(2026, 3, 15),
-      );
+      final todo = Todo(id: '1', title: '할일', date: DateTime(2026, 3, 15));
       await provider.addTodo(todo);
 
       // When: 날짜 변경
@@ -161,7 +133,6 @@ void main() {
       expect(provider.todos.first.date, newDate);
     });
 
-    // ─── 날짜 인덱스 O(1) 조회 테스트 ─────────────────────────────────────
     group('날짜 인덱스 성능 최적화 테스트', () {
       test('getTodosByDate가 O(1)로 동작 — 추가 후 인덱스 즉시 반영', () async {
         // Given: 여러 날짜에 걸친 할일
@@ -204,7 +175,9 @@ void main() {
 
       test('완료 토글 후 인덱스 유지', () async {
         final date = DateTime(2026, 3, 7);
-        await provider.addTodo(Todo(id: '1', title: '할일', date: date, completed: false));
+        await provider.addTodo(
+          Todo(id: '1', title: '할일', date: date, completed: false),
+        );
         await provider.toggleTodo('1');
 
         // 날짜는 변경되지 않으므로 인덱스 유지
@@ -224,7 +197,6 @@ void main() {
       });
     });
 
-    // ─── 할일 개수 제한 경고 테스트 ─────────────────────────────────────
     group('할일 개수 제한 경고 테스트', () {
       test('기본 제한값 확인', () {
         // Given: 새 Provider
@@ -250,22 +222,18 @@ void main() {
         // Given: 제한값을 5로 설정하고 5개의 할일 추가
         provider.setMaxTodoCount(5);
         for (int i = 0; i < 5; i++) {
-          await provider.addTodo(Todo(
-            id: 'todo_$i',
-            title: '할일 $i',
-            date: DateTime(2026, 3, 15),
-          ));
+          await provider.addTodo(
+            Todo(id: 'todo_$i', title: '할일 $i', date: DateTime(2026, 3, 15)),
+          );
         }
         expect(provider.todoCount, 5);
 
         // When: 6번째 할일 추가 시도
         // Then: 예외가 발생하고 할일이 추가되지 않아야 함
         expect(
-          () => provider.addTodo(Todo(
-            id: 'todo_6',
-            title: '할일 6',
-            date: DateTime(2026, 3, 15),
-          )),
+          () => provider.addTodo(
+            Todo(id: 'todo_6', title: '할일 6', date: DateTime(2026, 3, 15)),
+          ),
           throwsException,
         );
         expect(provider.todoCount, 5); // 여전히 5개
@@ -284,11 +252,9 @@ void main() {
 
         // When: 80개의 할일 추가 (경고 임계값 도달)
         for (int i = 0; i < 80; i++) {
-          await provider.addTodo(Todo(
-            id: 'todo_$i',
-            title: '할일 $i',
-            date: DateTime(2026, 3, 15),
-          ));
+          await provider.addTodo(
+            Todo(id: 'todo_$i', title: '할일 $i', date: DateTime(2026, 3, 15)),
+          );
         }
 
         // Then: 경고 스트림에 알림이 전송되었는지 확인
@@ -304,11 +270,9 @@ void main() {
 
         // When: 많은 할일 추가 (예: 200개)
         for (int i = 0; i < 200; i++) {
-          await provider.addTodo(Todo(
-            id: 'todo_$i',
-            title: '할일 $i',
-            date: DateTime(2026, 3, 15),
-          ));
+          await provider.addTodo(
+            Todo(id: 'todo_$i', title: '할일 $i', date: DateTime(2026, 3, 15)),
+          );
         }
 
         // Then: 모든 할일이 추가되었는지 확인
@@ -321,11 +285,9 @@ void main() {
 
         // When: 3개의 할일 추가
         for (int i = 0; i < 3; i++) {
-          await provider.addTodo(Todo(
-            id: 'todo_$i',
-            title: '할일 $i',
-            date: DateTime(2026, 3, 15),
-          ));
+          await provider.addTodo(
+            Todo(id: 'todo_$i', title: '할일 $i', date: DateTime(2026, 3, 15)),
+          );
         }
 
         // Then: 할일 개수가 3개인지 확인
@@ -349,9 +311,7 @@ void main() {
         expect(provider.todoCount, 5);
 
         // When: 3개의 할일 일괄 삭제
-        final deletedCount = await provider.deleteTodos(
-          todoIds.sublist(0, 3),
-        );
+        final deletedCount = await provider.deleteTodos(todoIds.sublist(0, 3));
 
         // Then: 삭제된 개수 확인
         expect(deletedCount, 3);

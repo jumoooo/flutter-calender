@@ -96,11 +96,7 @@ class CalendarProvider with ChangeNotifier {
     await _runWithTransition(() {
       // 이전 달로 이동 → 오른쪽에서 왼쪽으로 넘어가는 느낌 (-1)
       _monthSlideDirection = -1;
-      _currentMonth = DateTime(
-        _currentMonth.year,
-        _currentMonth.month - 1,
-        1,
-      );
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
 
       final now = DateTime.now();
       final isCurrentMonthHasToday =
@@ -120,11 +116,7 @@ class CalendarProvider with ChangeNotifier {
     await _runWithTransition(() {
       // 다음 달로 이동 → 왼쪽에서 오른쪽으로 넘어가는 느낌 (1)
       _monthSlideDirection = 1;
-      _currentMonth = DateTime(
-        _currentMonth.year,
-        _currentMonth.month + 1,
-        1,
-      );
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
 
       final now = DateTime.now();
       final isCurrentMonthHasToday =

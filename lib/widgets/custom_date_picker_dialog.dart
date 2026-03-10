@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_calender/constants/app_constants.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 커스텀 날짜 선택 다이얼로그
-//
-// todo_input_screen 에서 사용하던 날짜 선택 다이얼로그를 공용 위젯으로 분리.
-// showCustomDatePicker() 함수를 통해 어디서든 호출 가능.
-// ─────────────────────────────────────────────────────────────────────────────
-
 /// 커스텀 날짜 선택 다이얼로그를 표시하고 선택된 날짜를 반환합니다.
 ///
 /// 취소 또는 바깥 터치 시 null 반환.
@@ -102,8 +95,6 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
     super.dispose();
   }
 
-  // ─── 유틸리티 ─────────────────────────────────────────────────────────────
-
   /// 날짜 → "YYYY.MM.DD" 형식 문자열
   String _formatForInput(DateTime date) =>
       '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
@@ -112,13 +103,15 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
   int _weekdayIndex(DateTime date) => date.weekday % 7;
 
   /// 요일별 색상 (일=빨강, 토=파랑, 그 외=fallback)
-  Color _weekdayColor(int weekdayIndex, {Color? fallback, required BuildContext ctx}) {
+  Color _weekdayColor(
+    int weekdayIndex, {
+    Color? fallback,
+    required BuildContext ctx,
+  }) {
     if (weekdayIndex == 0) return Colors.red;
     if (weekdayIndex == 6) return Colors.blue;
     return fallback ?? Theme.of(ctx).colorScheme.onSurface;
   }
-
-  // ─── 모드 전환 ────────────────────────────────────────────────────────────
 
   void _switchToInputMode() {
     _inputController.text = _formatForInput(_selectedDate);
@@ -135,8 +128,6 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
     _slideController.reverse();
   }
 
-  // ─── 입력 파싱 ────────────────────────────────────────────────────────────
-
   bool _tryParseInput({bool silent = false}) {
     final text = _inputController.text.trim();
     try {
@@ -146,7 +137,8 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
         final m = int.parse(parts[1]);
         final d = int.parse(parts[2]);
         final parsed = DateTime(y, m, d);
-        if (!parsed.isBefore(widget.firstDate) && !parsed.isAfter(widget.lastDate)) {
+        if (!parsed.isBefore(widget.firstDate) &&
+            !parsed.isAfter(widget.lastDate)) {
           setState(() {
             _selectedDate = parsed;
             _calendarMonth = DateTime(parsed.year, parsed.month);
@@ -167,8 +159,6 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
     return false;
   }
 
-  // ─── 확인 / 월 이동 ───────────────────────────────────────────────────────
-
   void _confirm() {
     if (_isInputMode) {
       if (_tryParseInput()) Navigator.of(context).pop(_selectedDate);
@@ -184,8 +174,6 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
   void _nextMonth() => setState(() {
     _calendarMonth = DateTime(_calendarMonth.year, _calendarMonth.month + 1);
   });
-
-  // ─── 달력 그리드 ──────────────────────────────────────────────────────────
 
   List<DateTime> _generateMonthDays(DateTime month) {
     final firstDay = DateTime(month.year, month.month, 1);
@@ -219,7 +207,6 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ── 월 네비게이션 ──
         Row(
           children: [
             IconButton(
@@ -231,7 +218,10 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
               child: Center(
                 child: Text(
                   '${_calendarMonth.year}년 ${_calendarMonth.month}월',
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ),
@@ -243,7 +233,6 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
           ],
         ),
 
-        // ── 요일 헤더 ──
         const SizedBox(height: 4),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -265,7 +254,6 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
           ),
         ),
 
-        // ── 날짜 그리드 ──
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: GridView.builder(
@@ -294,8 +282,8 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
                 textColor = isSelected
                     ? cs.primary
                     : isCurrentMonth
-                        ? cs.onSurface
-                        : cs.onSurface.withAlpha(80);
+                    ? cs.onSurface
+                    : cs.onSurface.withAlpha(80);
               }
 
               return GestureDetector(
@@ -315,8 +303,8 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
                     color: isSelected
                         ? cs.primary.withAlpha(40)
                         : !isCurrentMonth
-                            ? cs.onSurface.withAlpha(15)
-                            : Colors.transparent,
+                        ? cs.onSurface.withAlpha(15)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: isSelected
@@ -357,8 +345,6 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
     );
   }
 
-  // ─── build ────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -370,20 +356,18 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
     final headerWeekdayColor = wIdx == 0
         ? Colors.red[200]!
         : wIdx == 6
-            ? Colors.lightBlue[200]!
-            : Colors.white;
+        ? Colors.lightBlue[200]!
+        : Colors.white;
 
     return Dialog(
       backgroundColor: cs.surface,
       insetPadding: AppConstants.dialogInsetPaddingSmall,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── 헤더 ──
           Container(
             padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
             color: cs.primary,
@@ -408,7 +392,8 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
                         ),
                         children: [
                           TextSpan(
-                            text: '${_selectedDate.month}월 ${_selectedDate.day}일 ',
+                            text:
+                                '${_selectedDate.month}월 ${_selectedDate.day}일 ',
                           ),
                           TextSpan(
                             text: '($weekdayLabel)',
@@ -421,7 +406,9 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
                 ),
                 const Spacer(),
                 IconButton(
-                  onPressed: _isInputMode ? _switchToCalendarMode : _switchToInputMode,
+                  onPressed: _isInputMode
+                      ? _switchToCalendarMode
+                      : _switchToInputMode,
                   icon: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),
                     child: Icon(
@@ -436,7 +423,6 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
             ),
           ),
 
-          // ── 콘텐츠 (슬라이드 전환) ──
           ClipRect(
             child: Stack(
               children: [
@@ -488,7 +474,6 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
             ),
           ),
 
-          // ── 하단 버튼 ──
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
             child: Row(
@@ -497,7 +482,10 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                   ),
                   child: const Text('취소'),
                 ),
@@ -505,7 +493,10 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog>
                 TextButton(
                   onPressed: _confirm,
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                   ),
                   child: const Text('확인'),
                 ),

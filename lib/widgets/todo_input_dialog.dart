@@ -10,13 +10,6 @@ import 'package:flutter_calender/widgets/common/snackbar_helper.dart';
 import 'package:flutter_calender/widgets/custom_date_picker_dialog.dart';
 import 'package:provider/provider.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 할일 추가/수정 다이얼로그
-//
-// showTodoInputDialog() 함수를 통해 어디서든 호출 가능.
-// 제목, 설명, 날짜, 시간, 기한, 우선순위, 카테고리를 입력/수정합니다.
-// ─────────────────────────────────────────────────────────────────────────────
-
 /// 할일 추가/수정 다이얼로그를 표시합니다.
 ///
 /// [todo] 가 있으면 수정 모드, 없으면 추가 모드.
@@ -28,7 +21,6 @@ Future<void> showTodoInputDialog(
 }) {
   return showDialog(
     context: context,
-    // 입력 다이얼로그는 바깥 터치로 닫히지 않도록
     barrierDismissible: false,
     builder: (_) => TodoInputDialog(todo: todo, initialDate: initialDate),
   );
@@ -53,12 +45,10 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
   late DateTime _selectedDate;
   late TodoPriority _selectedPriority;
 
-  // 새로 추가된 필드
   String? _selectedCategoryId;
   DateTime? _selectedDueDate;
   TimeOfDay? _selectedTime;
 
-  // 경고 스트림 구독
   StreamSubscription<int>? _warningSubscription;
 
   bool get _isEditMode => widget.todo != null;
@@ -67,7 +57,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
   void initState() {
     super.initState();
     if (widget.todo != null) {
-      // 수정 모드: 기존 데이터 바인딩
       _titleController.text = widget.todo!.title;
       _descriptionController.text = widget.todo!.description ?? '';
       _selectedDate = widget.todo!.date;
@@ -76,16 +65,13 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
       _selectedDueDate = widget.todo!.dueDate;
       _selectedTime = widget.todo!.todoTime;
     } else {
-      // 추가 모드
       _selectedDate = widget.initialDate ?? DateTime.now();
       _selectedPriority = TodoPriority.normal;
-      // 다이얼로그 열린 후 제목 필드에 자동 포커스
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _titleFocusNode.requestFocus();
       });
     }
 
-    // 경고 스트림 구독 (할일 개수 경고)
     final provider = Provider.of<TodoProvider>(context, listen: false);
     _warningSubscription = provider.warningStream.listen((count) {
       if (mounted) {
@@ -102,8 +88,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
     _warningSubscription?.cancel();
     super.dispose();
   }
-
-  // ─── 경고 다이얼로그 ──────────────────────────────────────────────────────────
 
   /// 할일 개수 경고 다이얼로그 표시
   Future<void> _showWarningDialog(int currentCount, int? maxCount) async {
@@ -134,8 +118,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
     );
   }
 
-  // ─── 저장 ─────────────────────────────────────────────────────────────────
-
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final provider = Provider.of<TodoProvider>(context, listen: false);
@@ -151,7 +133,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
           categoryId: _selectedCategoryId,
           dueDate: _selectedDueDate,
           todoTime: _selectedTime,
-          // 명시적으로 null 지우기 플래그
           clearDescription: _descriptionController.text.trim().isEmpty,
           clearCategoryId: _selectedCategoryId == null,
           clearDueDate: _selectedDueDate == null,
@@ -176,18 +157,14 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
-        // 할일 개수 제한 초과 에러인 경우 특별 처리
         final errorMessage = e.toString().contains('할일 개수 제한')
             ? '할일 개수 제한(${provider.maxTodoCount ?? '제한 없음'}개)에 도달했습니다.\n일부 할일을 삭제한 후 다시 시도해주세요.'
             : '저장 중 오류가 발생했습니다.';
 
-        // 에러 메시지 표시
         SnackbarHelper.showError(context, errorMessage);
       }
     }
   }
-
-  // ─── 삭제 ─────────────────────────────────────────────────────────────────
 
   Future<void> _delete() async {
     final confirmed = await showDialog<bool>(
@@ -213,12 +190,8 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
     try {
       await provider.deleteTodo(widget.todo!.id);
       if (mounted) Navigator.of(context).pop();
-    } catch (_) {
-      // 에러는 스트림으로 처리됨
-    }
+    } catch (_) {}
   }
-
-  // ─── 날짜 선택 ────────────────────────────────────────────────────────────
 
   Future<void> _pickDate() async {
     final picked = await showCustomDatePicker(
@@ -232,8 +205,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
     }
   }
 
-  // ─── 기한(dueDate) 선택 ────────────────────────────────────────────────────
-
   Future<void> _pickDueDate() async {
     final picked = await showCustomDatePicker(
       context: context,
@@ -246,8 +217,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
     }
   }
 
-  // ─── 시간 선택 ────────────────────────────────────────────────────────────
-
   Future<void> _pickTime() async {
     final picked = await showTimePicker(
       context: context,
@@ -258,15 +227,12 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
     }
   }
 
-  // ─── build ────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final priorityColor = PriorityColors.getColor(_selectedPriority);
 
-    // 날짜 요일 정보
     final weekday = _selectedDate.weekday % 7;
     final isSunday = weekday == 0;
     final isSaturday = weekday == 6;
@@ -296,7 +262,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── 헤더 ─────────────────────────────────────────────────────
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
@@ -325,7 +290,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
               ),
             ),
 
-            // ── 본문 (스크롤 가능) ────────────────────────────────────────
             Expanded(
               child: Form(
                 key: _formKey,
@@ -334,7 +298,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 제목 입력
                       TextFormField(
                         controller: _titleController,
                         focusNode: _titleFocusNode,
@@ -364,7 +327,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
 
                       const SizedBox(height: 14),
 
-                      // 설명 입력
                       TextFormField(
                         controller: _descriptionController,
                         decoration: InputDecoration(
@@ -393,7 +355,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
 
                       const SizedBox(height: 14),
 
-                      // ── 날짜 선택 ─────────────────────────────────────
                       _PickerRow(
                         icon: Icons.calendar_today_outlined,
                         iconColor: cs.primary,
@@ -429,7 +390,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
 
                       const SizedBox(height: 10),
 
-                      // ── 시간 선택 ─────────────────────────────────────
                       _PickerRow(
                         icon: Icons.access_time_outlined,
                         iconColor: cs.primary,
@@ -451,7 +411,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
 
                       const SizedBox(height: 10),
 
-                      // ── 기한 선택 ─────────────────────────────────────
                       Builder(
                         builder: (context) {
                           final isOverdue =
@@ -494,7 +453,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
 
                       const SizedBox(height: 18),
 
-                      // ── 우선순위 레이블 ────────────────────────────────
                       Text(
                         '우선순위',
                         style: textTheme.labelLarge?.copyWith(
@@ -504,7 +462,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                       ),
                       const SizedBox(height: 10),
 
-                      // 우선순위 선택 — 5개 버튼 한 줄
                       Row(
                         children: TodoPriority.values.map((p) {
                           final isSelected = _selectedPriority == p;
@@ -546,7 +503,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          // 중앙화된 label 메서드 사용
                                           PriorityColors.label(p),
                                           style: TextStyle(
                                             fontSize: 11,
@@ -571,7 +527,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
 
                       const SizedBox(height: 18),
 
-                      // ── 카테고리 선택 ──────────────────────────────────
                       Text(
                         '카테고리',
                         style: textTheme.labelLarge?.copyWith(
@@ -586,7 +541,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                             spacing: 8,
                             runSpacing: 6,
                             children: [
-                              // "없음" 선택 칩
                               _CategoryChip(
                                 label: '없음',
                                 isSelected: _selectedCategoryId == null,
@@ -594,7 +548,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                                 onTap: () =>
                                     setState(() => _selectedCategoryId = null),
                               ),
-                              // 카테고리 칩 목록
                               ...categoryProvider.categories.map(
                                 (cat) => _CategoryChip(
                                   label: cat.name,
@@ -616,12 +569,10 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
               ),
             ),
 
-            // ── 하단 버튼 ──────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
               child: Row(
                 children: [
-                  // 수정 모드: 삭제 버튼
                   if (_isEditMode)
                     TextButton.icon(
                       onPressed: _delete,
@@ -636,7 +587,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                       ),
                     ),
                   const Spacer(),
-                  // 취소
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(
@@ -648,7 +598,6 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
                     child: const Text('취소'),
                   ),
                   const SizedBox(width: 4),
-                  // 저장
                   FilledButton(
                     onPressed: _save,
                     style: FilledButton.styleFrom(
@@ -674,15 +623,12 @@ class _TodoInputDialogState extends State<TodoInputDialog> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 날짜/시간/기한 선택 공통 행 위젯
-// ─────────────────────────────────────────────────────────────────────────────
 class _PickerRow extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final Color? borderColor;
   final VoidCallback onTap;
-  final VoidCallback? trailingClear; // X 버튼 (null이면 → 화살표 표시)
+  final VoidCallback? trailingClear;
   final Widget child;
 
   const _PickerRow({
@@ -730,9 +676,6 @@ class _PickerRow extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 카테고리 선택 칩 위젯
-// ─────────────────────────────────────────────────────────────────────────────
 class _CategoryChip extends StatelessWidget {
   final String label;
   final IconData? icon;
