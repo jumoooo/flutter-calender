@@ -1,0 +1,48 @@
+# GitHub Pages 배포용 .gitignore
+# 이 브랜치는 Flutter 웹 빌드 산출물만 포함합니다.
+
+# 개발 도구 파일 (배포에 불필요)
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+.metadata
+
+# 빌드 산출물 (build/web/는 예외로 유지)
+/build/
+!build/web/
+!build/web/**
+
+# IDE 관련
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# 기타
+.DS_Store
+*.log
+*.swp
+*.class
+
+# Cursor IDE & AI 관련 파일
+.cursor/
+design_notes.ipynb
+*.ipynb
+
+# 소스 코드 (배포 브랜치에는 필요 없음)
+lib/
+test/
+pubspec.yaml
+pubspec.lock
+analysis_options.yaml
+README.md
+
+# 플랫폼별 파일 (배포에 불필요)
+android/
+ios/
+linux/
+macos/
+windows/
+web/
